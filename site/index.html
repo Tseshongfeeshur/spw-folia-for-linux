@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>spw-folia — 让歌词成为风景</title>
-<meta name="description" content="Salt Player for Windows 的 Folia 歌词可视化插件：真实 Folia 渲染器、15 种样式、播放页透明叠加，实测 100–114 FPS。" />
+<meta name="description" content="面向 Salt Player 1.19.3 的 Linux Folia 歌词可视化插件：Wayland、KDE Plasma、QtWebEngine 与 PipeWire 原生宿主。" />
 <meta property="og:title" content="spw-folia — 让歌词成为风景" />
-<meta property="og:description" content="把 Folia 真正的渲染器搬进 Windows 桌面。15 种样式，逐字发光，与播放器同步。" />
+<meta property="og:description" content="在 Linux Wayland 与 KDE Plasma 上运行 Folia 渲染器，歌词、播放状态和音频随 Salt Player 同步。" />
 <meta property="og:image" content="assets/video/hero-poster.jpg" />
 <meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2306060a'/%3E%3Cpath d='M16 6l2.6 7.4L26 16l-7.4 2.6L16 26l-2.6-7.4L6 16l7.4-2.6z' fill='%23ffb545'/%3E%3C/svg%3E" />
@@ -23,9 +23,9 @@
   </a>
   <div class="nav-links">
     <a href="#styles">样式</a>
-    <a href="#smooth">流畅</a>
-    <a href="#overlay">透明</a>
-    <a href="#film">宣传片</a>
+    <a href="#smooth">数据</a>
+    <a href="#runtime">运行边界</a>
+    <a href="#settings">设置</a>
     <a href="#install">安装</a>
     <a class="nav-cta" href="https://github.com/tseshongfeeshur/spw-folia" target="_blank" rel="noopener">GitHub</a>
   </div>
@@ -39,26 +39,29 @@
   <div class="hero-grain"></div>
 
   <div class="hero-copy">
-    <p class="eyebrow">Salt Player for Windows · 歌词可视化</p>
+    <p class="eyebrow">Salt Player 1.19.3 · Linux · Wayland · KDE Plasma</p>
     <h1>让歌词<br /><em>成为风景</em></h1>
     <p class="lede">
-      不是仿制的动效，而是把 Folia 真正的渲染器搬进 Windows 桌面。
-      逐字发光，随乐起伏，与播放器同步。
+      Folia 的生产渲染器运行在 Qt6/QtWebEngine 原生宿主中，
+      播放状态、歌词、封面和 PipeWire 音频与 Salt Player 保持同步。
+    </p>
+    <p class="legacy-note">
+      页面中的视频与部分截图来自旧 Windows 构建，仅用于展示 Folia 视觉效果；当前支持范围以 Linux 运行说明为准。
     </p>
     <div class="hero-actions">
-      <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases/tag/v0.4.3" target="_blank" rel="noopener">
-        下载 v0.4.3 <span class="btn-sub">.spmod</span>
+      <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases" target="_blank" rel="noopener">
+        查看 Releases <span class="btn-sub">.spmod</span>
       </a>
-      <a class="btn btn-ghost" href="#styles">看看 15 种样式</a>
+      <a class="btn btn-ghost" href="#styles">查看 14 种样式</a>
     </div>
   </div>
 
   <div class="hero-meta">
     <span>AGPL-3.0</span>
     <span class="dot"></span>
-    <span>Windows 10 / 11 x64</span>
+    <span>Linux x86_64</span>
     <span class="dot"></span>
-    <span>不联网</span>
+    <span>本地资源 · 不联网</span>
   </div>
 
   <a class="scroll-hint" href="#real" aria-label="向下滚动">
@@ -75,8 +78,8 @@
         <p class="kicker">01 — 真身</p>
         <h2>你看到的是<em>真正的 Folia</em></h2>
         <p class="sub">
-          没有重画一帧动画。插件把上游 Folia 的渲染器原样打包，交给原生 WebView2 宿主实时绘制；
-          宿主只负责窗口、透明合成与音频采样。所以这里的每一个画面，就是 Folia 本身。
+          插件不重画 Folia 的动画。Linux 包内的 web bundle 由 QtWebEngine 加载，
+          Qt 宿主负责窗口、托盘、协议桥和音频分析，页面仍由 Folia 渲染器绘制。
         </p>
       </header>
     </div>
@@ -87,7 +90,7 @@
       </video>
       <figcaption>
         <span class="cap-dot"></span>
-        15 种样式连续切换 · 全部由 Folia 渲染器实时绘制
+        历史 Windows 构建录制 · 用于展示 Folia 样式，不代表当前 Linux 窗口实现
       </figcaption>
     </figure>
 
@@ -95,15 +98,15 @@
       <div class="facts">
         <div class="fact reveal">
           <h3>逐字发光</h3>
-          <p>每个字都有自己的入场时序与辉光，跟着音节的起落亮起来，而不是整行淡入。</p>
+          <p>每个字都有自己的入场时序与辉光，跟着逐字时间轴亮起来，而不是整行淡入。</p>
         </div>
         <div class="fact reveal">
           <h3>封面取色</h3>
-          <p>从专辑封面提取主色调，歌词配色随之流动；换一首歌，就是换一片天色。</p>
+          <p>从专辑封面提取主色调，歌词配色随之变化；换一首歌，就是换一片天色。</p>
         </div>
         <div class="fact reveal">
           <h3>同步到播放器</h3>
-          <p>读取真实播放时间轴，拖动进度、暂停、切歌都立刻跟上，不是猜节拍。</p>
+          <p>播放、暂停、切歌和定位通过公开 Workshop API 同步，不依赖播放器私有类或反射控制。</p>
         </div>
       </div>
     </div>
@@ -113,9 +116,9 @@
   <section class="section styles" id="styles">
     <div class="wrap">
       <header class="sec-head reveal">
-        <p class="kicker">02 — 十五种气质</p>
-        <h2>同一句歌词，<em>十五种呼吸</em></h2>
-        <p class="sub">从安静的排版，到流动的光。每一款都是 Folia 的官方样式，一键切换。</p>
+        <p class="kicker">02 — 十四种气质</p>
+        <h2>同一句歌词，<em>十四种呼吸</em></h2>
+        <p class="sub">从安静的排版，到流动的光。每一款都是 Folia 的样式，一键切换。</p>
       </header>
     </div>
 
@@ -123,78 +126,80 @@
 
     <div class="wrap">
       <p class="gallery-note reveal">
-        截图取自真实渲染器，金色主题为展示效果；插件内默认跟随封面与深浅色；「花火」样式截图待补。
+        截图来自 Folia 渲染器的历史录制，金色主题仅用于展示；当前插件仍随封面与设置主题渲染。
       </p>
     </div>
   </section>
 
-  <!-- ─────────────────────────  流畅  ───────────────────────── -->
+  <!-- ─────────────────────────  数据  ───────────────────────── -->
   <section class="section smooth" id="smooth">
     <div class="wrap">
       <header class="sec-head reveal">
-        <p class="kicker">03 — 流畅</p>
-        <h2>看不见的<em>顺滑</em></h2>
+        <p class="kicker">03 — 各走各的通道</p>
+        <h2>让高频数据<em>留在宿主里</em></h2>
         <p class="sub">
-          原生 WebView2 + 硬件合成，v0.3.x 的 14 款样式逐一实测，帧率稳定在 100 FPS 以上；
-          即使播放页完全透明、同时叠加在桌面之上，也没有掉帧。
+          Kotlin 插件只同步播放所需的低频状态。PipeWire 采样、FFT、频谱压缩和五频段计算都在 Qt 宿主完成，
+          音频帧直接注入页面，避免把高频数据绕回 JVM。
         </p>
       </header>
 
       <div class="stats">
         <div class="stat reveal">
-          <p class="stat-num"><span class="count" data-to="114">0</span><span class="unit">FPS</span></p>
-          <p class="stat-label">实测峰值</p>
+          <p class="stat-num"><span class="count" data-to="100">0</span><span class="unit">ms</span></p>
+          <p class="stat-label">播放状态同步间隔</p>
         </div>
         <div class="stat reveal">
-          <p class="stat-num"><span class="count" data-to="100">0</span><span class="unit">+</span></p>
-          <p class="stat-label">14 款样式下限（v0.3.x 实测）</p>
+          <p class="stat-num"><span class="count" data-to="30">0</span><span class="unit">Hz</span></p>
+          <p class="stat-label">宿主向页面发送音频分析</p>
+        </div>
+        <div class="stat reveal">
+          <p class="stat-num"><span class="count" data-to="4">0</span><span class="unit">项</span></p>
+          <p class="stat-label">公开播放控制</p>
         </div>
         <div class="stat reveal">
           <p class="stat-num"><span class="count" data-to="0">0</span><span class="unit">次</span></p>
-          <p class="stat-label">外部网络请求</p>
-        </div>
-        <div class="stat reveal">
-          <p class="stat-num"><span class="count" data-to="16">0</span><span class="unit">s</span></p>
-          <p class="stat-label">逐字时间轴循环</p>
+          <p class="stat-label">运行时外部网络请求</p>
         </div>
       </div>
 
       <div class="flow reveal">
         <div class="flow-line"><i></i></div>
-        <p class="flow-caption">逐帧绘制 · 无跳帧 · 无闪烁</p>
+        <p class="flow-caption">state / lyrics / track 走 JSON-lines · audio 走 QtWebEngine 注入</p>
       </div>
     </div>
   </section>
 
-  <!-- ─────────────────────────  透明  ───────────────────────── -->
-  <section class="section overlay" id="overlay">
+  <!-- ─────────────────────────  运行边界  ───────────────────────── -->
+  <section class="section overlay" id="runtime">
     <div class="wrap split">
       <div class="split-copy reveal">
-        <p class="kicker">04 — 桌面之上</p>
-        <h2>让桌面<em>只剩歌词</em></h2>
+        <p class="kicker">04 — Linux 边界</p>
+        <h2>系统依赖<em>写在明面上</em></h2>
         <p class="sub">
-          播放页背景可以完全透明，歌词直接浮在你的壁纸上，不挡视线，也不影响操作。
-          鼠标穿透一键切换，两个浮标始终可点。
+          这是 Linux-only 版本。窗口使用 Qt 的 Wayland 平台插件，托盘使用 Plasma StatusNotifier，
+          音频使用 PipeWire sink monitor；Qt、QtWebEngine、Wayland、Plasma 和 PipeWire 由系统提供。
         </p>
         <ul class="ticks">
-          <li>真透明窗口，不是录制或黑底叠加</li>
-          <li>鼠标穿透开关：透明时也能正常操作桌面</li>
-          <li>「透明背景」与「透明 + 穿透」都能绑成 SPW 快捷键（默认 Ctrl+Alt+G / Ctrl+Alt+Shift+G）</li>
+          <li>目标环境：Linux x86_64 + Wayland + KDE Plasma</li>
+          <li>不提供 X11 回退，也不打包 Qt 或 PipeWire</li>
+          <li>不支持透明窗口、鼠标穿透、Windows/WebView2、WASAPI 和队列控制</li>
         </ul>
       </div>
 
-      <div class="desktop reveal" aria-label="桌面透明叠加示意">
-        <div class="desk-wall"></div>
-        <div class="desk-icons">
-          <span></span><span></span><span></span>
+      <div class="runtime-diagram reveal" aria-label="spw-folia Linux 进程架构">
+        <div class="runtime-row runtime-row-plugin">
+          <span class="runtime-mark">K</span>
+          <div><b>Salt Player JVM / PF4J</b><small>公开 Workshop API · 播放状态 · 快捷键</small></div>
         </div>
-        <video class="desk-video" autoplay muted loop playsinline preload="none" poster="assets/video/overlay-poster.jpg">
-          <source src="assets/video/overlay.mp4" type="video/mp4" />
-        </video>
-        <div class="desk-bar">
-          <span class="desk-toggle"><i></i></span>
-          <span class="desk-bar-label">播放页透明背景</span>
-          <span class="desk-float"></span>
+        <div class="runtime-link" aria-hidden="true">JSON-lines</div>
+        <div class="runtime-row runtime-row-host">
+          <span class="runtime-mark">Q</span>
+          <div><b>spw-folia-host</b><small>Qt6 · QtWebEngine · Wayland · Plasma tray</small></div>
+        </div>
+        <div class="runtime-link" aria-hidden="true">local bundle + audio</div>
+        <div class="runtime-row runtime-row-page">
+          <span class="runtime-mark">F</span>
+          <div><b>Folia page</b><small>歌词渲染 · 设置 · PipeWire 音频效果</small></div>
         </div>
       </div>
     </div>
@@ -204,19 +209,19 @@
   <section class="section settings" id="settings">
     <div class="wrap split split-rev">
       <figure class="shot reveal">
-        <img src="assets/stills/settings-ui.jpg" alt="spw-folia 设置页：左侧为实时大预览，右侧为样式与参数面板" loading="lazy" />
+        <img src="assets/stills/settings-ui.jpg" alt="spw-folia 历史设置页截图：左侧为预览，右侧为样式与参数面板" loading="lazy" />
+        <figcaption class="legacy-visual-note">历史 Windows 构建截图；用于说明 Folia 设置布局，当前平台边界见上文。</figcaption>
       </figure>
       <div class="split-copy reveal">
         <p class="kicker">05 — 一样的手感</p>
-        <h2>和 Folia<em>一样的设置页</em></h2>
+        <h2>沿用 Folia<em>设置体系</em></h2>
         <p class="sub">
-          设置页不是另做的简化版，而是沿用 Folia 的界面与参数体系：左侧实时大预览，
-          右侧调纹理、镜头、逐字动势与色彩模式，改一个值，画面立刻变。
+          设置页保留 Folia 的样式、背景、字体、字幕和调参逻辑。设置树由插件持久化，页面和播放窗口使用同一份配置。
         </p>
         <ul class="ticks">
-          <li>15 种样式、纹理分辨率、镜头运动强度全部开放</li>
-          <li>实时大预览逐帧镜像播放页：真实歌曲/歌词/背景/透明状态与真实时钟</li>
-          <li>与 Folia 一致的标签页与滑块，不需要重新学</li>
+          <li>14 种样式、纹理分辨率、镜头和文字动势调节</li>
+          <li>页面预览与播放状态、歌词、封面和真实时钟同步</li>
+          <li>不可用的 Windows 专属设置不会出现在 Linux 页面</li>
         </ul>
       </div>
     </div>
@@ -229,7 +234,7 @@
         <p class="kicker">06 — 开始使用</p>
         <h2>四步，<em>装进播放器</em></h2>
         <p class="sub">
-          需要 Salt Player for Windows 1.19.0 与 Windows 10 / 11 x64。
+          当前版本面向 Salt Player 1.19.3 的 Linux x86_64 Wayland + KDE Plasma 环境。
         </p>
       </header>
 
@@ -238,72 +243,48 @@
           <li class="reveal">
             <span class="step-n">1</span>
             <div>
-              <h3>下载插件包</h3>
-              <p>从 GitHub Releases 取 <code>spw-folia-0.4.3.spmod</code>。</p>
+              <h3>安装系统依赖</h3>
+              <p>准备 Qt 6 Widgets、QtWebEngine、PipeWire <code>libpipewire-0.3</code>、Wayland 和 Plasma 托盘支持。</p>
             </div>
           </li>
           <li class="reveal">
             <span class="step-n">2</span>
             <div>
-              <h3>放进插件目录</h3>
-              <p><code>%APPDATA%\Salt Player for Windows\workshop\plugins</code>，然后重启播放器。</p>
+              <h3>导入 Linux 插件包</h3>
+              <p>从 GitHub Releases 下载 Linux x86_64 的 <code>.spmod</code>，在 Salt Player 的创意工坊中导入。</p>
             </div>
           </li>
           <li class="reveal">
             <span class="step-n">3</span>
             <div>
-              <h3>授予 class-transform 权限</h3>
-              <p>插件需要读取播放器类才能注入菜单项，首次启用时会提示。</p>
+              <h3>启用公开权限</h3>
+              <p>按 Salt Player 提示授予 <code>library-read</code> 和 <code>key-bindings</code>；不需要 class-transform。</p>
             </div>
           </li>
           <li class="reveal">
             <span class="step-n">4</span>
             <div>
-              <h3>在「更多」里打开 Folia</h3>
-              <p>播放页右下角 → 更多 → Folia，即刻进入歌词可视化。</p>
+              <h3>用快捷键或托盘打开</h3>
+              <p>在 Salt Player 的快捷键设置中触发 Folia（默认 <code>Ctrl+Alt+F</code>），也可以使用 Plasma 托盘入口。</p>
             </div>
           </li>
         </ol>
 
-        <figure class="menu-shot reveal">
-          <img src="assets/stills/menu-folia.png" alt="Salt Player 的「更多」菜单中出现 Folia 菜单项" loading="lazy" />
-          <figcaption>菜单里的四角星，就是它</figcaption>
-        </figure>
+        <aside class="install-note reveal">
+          <p class="kicker">运行时提醒</p>
+          <h3>插件包不携带桌面运行时</h3>
+          <p>Qt、QtWebEngine、Wayland、KDE Plasma 和 PipeWire 必须由 Linux 系统安装。宿主首次启动后会常驻托盘，禁用或卸载插件时退出。</p>
+          <a href="https://github.com/tseshongfeeshur/spw-folia/blob/main/docs/linux-runtime.md" target="_blank" rel="noopener">阅读完整依赖说明</a>
+        </aside>
       </div>
     </div>
-  </section>
-
-  <!-- ─────────────────────────  宣传片  ───────────────────────── -->
-  <section class="section film" id="film">
-    <div class="wrap">
-      <header class="sec-head reveal">
-        <p class="kicker">07 — 一分钟巡览</p>
-        <h2>如果只想<em>看一遍</em></h2>
-        <p class="sub">
-          从真身、样式，到透明桌面与安装，一段不加速的实拍。画面全部来自插件真实渲染，
-          由无头浏览器逐帧录制，没有任何后期特效。
-        </p>
-      </header>
-    </div>
-
-    <figure class="film-frame reveal">
-      <video class="film-video" controls muted playsinline preload="none" poster="assets/video/tour-poster.jpg">
-        <source src="assets/video/tour.mp4" type="video/mp4" />
-        你的浏览器不支持 video 标签。
-      </video>
-      <figcaption>
-        <span class="cap-dot"></span>
-        48 秒 · 1920×1080 · 无加速实拍
-        <a class="film-dl" href="assets/video/tour.mp4" download>下载</a>
-      </figcaption>
-    </figure>
   </section>
 
   <section class="section cta-band">
     <div class="wrap">
       <p class="reveal">把夜晚交给一行歌词。</p>
       <div class="hero-actions reveal">
-        <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases/tag/v0.4.3" target="_blank" rel="noopener">下载 v0.4.3 <span class="btn-sub">.spmod</span></a>
+        <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases" target="_blank" rel="noopener">查看 Releases <span class="btn-sub">.spmod</span></a>
         <a class="btn btn-ghost" href="https://github.com/tseshongfeeshur/spw-folia" target="_blank" rel="noopener">查看源码</a>
       </div>
     </div>
@@ -316,7 +297,7 @@
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" /></svg>
       <div>
         <p class="footer-name">spw-folia</p>
-        <p class="footer-desc">Salt Player for Windows 的 Folia 歌词可视化插件</p>
+        <p class="footer-desc">Salt Player 1.19.3 的 Linux Folia 歌词可视化插件</p>
       </div>
     </div>
     <div class="footer-links">
@@ -329,7 +310,7 @@
   <div class="wrap footer-fine">
     <p>
       渲染器来自 <a href="https://github.com/chthollyphile/Folia" target="_blank" rel="noopener">Folia</a>（chthollyphile）；
-      宿主为 Salt Player for Windows（Moriafly）插件。本页面截图与视频均由插件真实渲染并以无头浏览器录制。
+      当前宿主为 Linux Qt6/QtWebEngine 进程，插件侧仅使用公开 Workshop API。页面中的视频和部分截图属于旧 Windows 构建历史素材。
     </p>
   </div>
 </footer>

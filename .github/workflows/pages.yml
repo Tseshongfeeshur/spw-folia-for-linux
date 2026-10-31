@@ -33,6 +33,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
+          # The artifact root is site/, so no other repository directory is published.
           path: site
 
       - id: deployment

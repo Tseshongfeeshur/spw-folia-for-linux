@@ -1,5 +1,8 @@
 # spw-folia v0.1.8 — 切歌/封面/歌词链路修复 + 透明窗口可点击
 
+> **历史 Windows 版本。** 本文只记录旧版实现，不是当前 Linux 版本的安装说明。请参阅
+> [`docs/version-history.md`](../version-history.md)。
+
 这一版是两处实际使用问题的修复：
 
 1. **自动切歌后封面取色不跟随、动态歌词切换慢** —— SPW 自动切歌后，全屏页的主题配色还停在上
@@ -45,7 +48,7 @@
 - 探针 `poc/webview/host/repro/click-post-probe.cs` 先证明合成消息链路可行；`WH_MOUSE_LL` 钩子在本机
   不触发，故没有采用钩子方案。
 
-机制见 [live-transparency.md](../live-transparency.md)，明细见 [verification-v0.1.8.md](verification-v0.1.8.md)。
+机制见 [live-transparency.md](live-transparency.md)，明细见 [verification-v0.1.8.md](verification-v0.1.8.md)。
 
 ## 产物
 

@@ -1,5 +1,8 @@
 # spw-folia v0.2.2 — 鼠标穿透重构为系统级 shaped region（借鉴 SPW-island）
 
+> **历史 Windows 版本。** 本文只记录旧版鼠标穿透实现，不是当前 Linux 版本的安装说明。请参阅
+> [`docs/version-history.md`](../version-history.md)。
+
 v0.2.2 把 v0.1.9 引入的「鼠标穿透」从**合成点击回放**重写为**操作系统级命中测试**，思路借鉴开源
 桌面挂件项目 SPW-island（Kotlin/Compose Desktop + JNA）的 shaped input peer 设计。协议与设置
 格式均与 v0.2.1 相同，这是 v0.2.0 以来第一次动宿主输入路径的行为级重构。
@@ -24,7 +27,7 @@ v0.2.2 把 v0.1.9 引入的「鼠标穿透」从**合成点击回放**重写为*
 - **借鉴出处** — SPW-island `WindowsGpuInput.kt` / `WindowsOverlay.kt` 的
   `WS_EX_TRANSPARENT|WS_EX_LAYERED` 整窗穿透 + shaped 小窗反选区域双窗方案，被折叠成单一
   「区域化捕获窗」，OS 命中测试语义等价、窗口数减半。设计细节见
-  [live-transparency.md](../live-transparency.md) §4.7。
+  [live-transparency.md](live-transparency.md) §4.7。
 
 ## 验证
 
@@ -62,7 +65,7 @@ sha256 `eeb8a128359531fa3f1d68d6ce6db5e808c3128f92c5f933e040ae7bae95ad34`，未�
 4. 重启 SPW，`更多 → Folia`。
 
 可直接从 v0.2.1 覆盖升级（协议、设置格式、web bundle 均未变）。系统依赖
-（WebView2 Runtime / .NET Framework 4.8）见 [runtime-requirements.md](../runtime-requirements.md)。
+（WebView2 Runtime / .NET Framework 4.8）见 [runtime-requirements.md](runtime-requirements.md)。
 
 ## 已知限制
 

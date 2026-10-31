@@ -1,5 +1,8 @@
 # spw-folia v0.1.9 — 鼠标穿透开关（透明时也能操作桌面）
 
+> **历史 Windows 版本。** 本文只记录旧版鼠标穿透实现，不是当前 Linux 版本的安装说明。请参阅
+> [`docs/version-history.md`](../version-history.md)。
+
 v0.1.8 让透明播放页里的控件重新可点，但整窗口都在吃鼠标：透明时想点桌面上的东西，只能先退出透明。
 v0.1.9 补上 **「鼠标穿透（操作桌面）」** 开关，并删掉左下角那个控制 chip —— 现在右下角圆钮和右上角
 齿轮在任何状态下都能点，不再需要额外的浮标窗口。
@@ -22,7 +25,7 @@ v0.1.9 补上 **「鼠标穿透（操作桌面）」** 开关，并删掉左下�
 - 页面+宿主级 9 项全部通过：面板开关互切、穿透点击落桌面（`transparency passthrough=click at=1600,560`）、
   穿透下圆钮/齿轮/设置页返回键可点、热键退出后 `mode=off` + `passthrough=off`。
 - 真机（SPW 1.19 + 0.1.9）：透明下两行开关可操作、点桌面生效、齿轮打开设置页、热键恢复不透明。
-- 细节见 [verification-v0.1.9.md](verification-v0.1.9.md)、[live-transparency.md](../live-transparency.md)。
+- 细节见 [verification-v0.1.9.md](verification-v0.1.9.md)、[live-transparency.md](live-transparency.md)。
 
 ## 产物
 

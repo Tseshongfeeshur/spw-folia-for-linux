@@ -1,5 +1,8 @@
 # spw-folia v0.3.0 — 开源链接 · 按钮样式统一 · 透明字体随系统明暗 · 底部播放控制条（可点可用 · 亚克力 · 闲置隐藏 · 侧键退出）
 
+> **历史 Windows 版本。** 本文只记录旧版透明窗口、托盘和播放控制实现，不是当前 Linux 版本的安装说明。请参阅
+> [`docs/version-history.md`](../version-history.md)。
+
 v0.3.0 是 UI/元数据 + 播放控制通道的增量更新：插件管理补开源链接、右下角按钮去掉专属色环、
 透明窗口字体颜色改随系统深浅模式、新增底部播放控制条；并在验收反馈后完成 **播放控制接线**
 （上一版协议只读，按钮原本只能 disabled）与 **HUD 观感修正**（亚克力毛玻璃、鼠标闲置自动下滑
@@ -110,7 +113,7 @@ queue→page 转发、内嵌新版 Shim（侧键返回退出）与透明捕获�
 4. 重启 SPW，`更多 → Folia`。
 
 可直接从 v0.2.2 覆盖升级（协议、设置格式、web bundle 均未变）。系统依赖
-（WebView2 Runtime / .NET Framework 4.8）见 [runtime-requirements.md](../runtime-requirements.md)。
+（WebView2 Runtime / .NET Framework 4.8）见 [runtime-requirements.md](runtime-requirements.md)。
 
 ## 已知限制
 

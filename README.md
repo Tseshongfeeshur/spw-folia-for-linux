@@ -34,6 +34,14 @@ Qt 宿主；宿主启动后会常驻并显示 Plasma 托盘。禁用或卸载插
 详细依赖和构建说明见 [docs/linux-runtime.md](docs/linux-runtime.md)、[docs/protocol.md](docs/protocol.md)
 和 [docs/release.md](docs/release.md)。
 
+当前版本说明和旧版本迁移边界见 [docs/version-history.md](docs/version-history.md)；当前版本详细变更见
+[docs/release-notes-v0.5.0.md](docs/release-notes-v0.5.0.md)。旧 Windows
+版本的发布记录集中在 [docs/archive/](docs/archive/)。项目主页中的部分视频和截图也是旧版 Windows
+构建素材，不能用来判断当前 Linux 版本是否支持透明窗口或菜单入口。
+
+项目主页的 GitHub Pages 部署方式见 [docs/github-pages.md](docs/github-pages.md)。当前 workflow
+直接把仓库根目录下的 `site/` 上传为 Pages artifact，不会把仓库其他目录发布到网站。
+
 ## 从源码构建
 
 ```sh

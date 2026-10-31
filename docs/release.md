@@ -1,5 +1,9 @@
 # Release
 
+The current development release is **v0.5.0**, Linux-only. Older Windows release notes are historical
+records and are indexed in [`version-history.md`](version-history.md); do not use their install steps
+for the current package.
+
 The release artifact is an `.spmod` containing the Kotlin plugin, Linux web resources, the native
 Qt host, and license notices.
 

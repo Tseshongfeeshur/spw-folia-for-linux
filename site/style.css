@@ -700,6 +700,65 @@ body::after {
   box-shadow: 0 0 16px rgba(255, 181, 69, 0.85);
 }
 
+.runtime-diagram {
+  display: grid;
+  gap: 12px;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 5px;
+  background: linear-gradient(145deg, rgba(255, 181, 69, 0.08), rgba(255, 255, 255, 0.025));
+  box-shadow: 0 50px 120px -46px #000;
+}
+.runtime-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 17px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: rgba(5, 5, 9, 0.58);
+}
+.runtime-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid rgba(255, 181, 69, 0.5);
+  border-radius: 50%;
+  color: var(--gold);
+  font-family: var(--serif);
+  font-size: 15px;
+}
+.runtime-row b,
+.runtime-row small { display: block; }
+.runtime-row b { font-family: var(--serif); font-size: 18px; font-weight: 400; color: #fbf8f2; }
+.runtime-row small { margin-top: 4px; font-size: 12px; line-height: 1.5; color: rgba(243, 237, 226, 0.46); }
+.runtime-link {
+  text-align: center;
+  color: rgba(255, 181, 69, 0.7);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.legacy-note,
+.legacy-visual-note {
+  color: rgba(243, 237, 226, 0.48);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.legacy-note {
+  max-width: 630px;
+  margin: 18px 0 0;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 181, 69, 0.55);
+}
+.legacy-visual-note {
+  margin: 0;
+  padding: 12px 14px 14px;
+  background: rgba(4, 4, 6, 0.8);
+}
+
 /* ── settings shot ─────────────────────────────────────────── */
 .settings { background: linear-gradient(to bottom, var(--ink), #08080d); }
 .shot {
@@ -710,6 +769,7 @@ body::after {
   box-shadow: 0 50px 120px -46px #000;
 }
 .shot img { width: 100%; }
+.shot figcaption { display: block; }
 
 /* ── install ───────────────────────────────────────────────── */
 .install { background: #08080d; }
@@ -768,19 +828,17 @@ body::after {
   word-break: break-all;
 }
 
-.menu-shot { margin: 0; text-align: center; }
-.menu-shot img {
-  width: min(270px, 100%);
-  margin-inline: auto;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 40px 90px -40px #000;
+.install-note {
+  margin: 0;
+  padding: 28px;
+  border: 1px solid rgba(255, 181, 69, 0.2);
+  border-radius: 5px;
+  background: rgba(255, 181, 69, 0.045);
 }
-.menu-shot figcaption {
-  margin-top: 18px;
-  font-size: 13px;
-  color: rgba(243, 237, 226, 0.4);
-}
+.install-note .kicker { margin-bottom: 16px; }
+.install-note h3 { margin: 0 0 12px; font-family: var(--serif); font-weight: 400; font-size: 24px; color: #fbf8f2; }
+.install-note p:not(.kicker) { margin: 0; font-size: 14px; line-height: 1.85; color: rgba(243, 237, 226, 0.6); }
+.install-note a { display: inline-block; margin-top: 22px; color: var(--gold-soft); border-bottom: 1px solid rgba(255, 181, 69, 0.35); }
 
 /* ── cta band ──────────────────────────────────────────────── */
 /* ── promo film ────────────────────────────────────────────── */
@@ -947,7 +1005,7 @@ body::after {
   .split-rev > .shot { order: 2; }
   .gallery { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .nav-links { gap: 14px; font-size: 13.5px; }
-  .nav-links a[href="#smooth"], .nav-links a[href="#overlay"] { display: none; }
+  .nav-links a[href="#smooth"], .nav-links a[href="#runtime"] { display: none; }
 }
 
 @media (max-width: 620px) {

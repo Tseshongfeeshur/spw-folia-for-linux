@@ -65,4 +65,4 @@ peer）是 **OS 命中测试层的真穿透**：`WS_EX_TRANSPARENT|WS_EX_LAYERED
 | `spw-folia-host.exe` | 131,584 B | `e4248044c5bfad60aab7145ce37c3af9ba82e62413e4ca34b92d9c403b9d1ee9` |
 | `settings-ui.js`（未改动） | 1,071,968 B | `eeb8a128359531fa3f1d68d6ce6db5e808c3128f92c5f933e040ae7bae95ad34` |
 
-设计契约见 [live-transparency.md](../live-transparency.md) §4.7。
+设计契约见 [live-transparency.md](live-transparency.md) §4.7。

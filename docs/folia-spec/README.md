@@ -1,6 +1,11 @@
-# Folia 复刻规格 · 总索引（task-2 交付）
+# Folia 复刻规格 · 总索引（历史设计资料）
 
-目标：让 spw-folia 插件在 WebView2 里托管 Folia 自己的可视化代码，1:1 复刻 **全屏歌词模式** 与 **歌词样式设置页**（截图 1）。
+> **历史资料提示：** 本目录记录的是 Linux 迁移前的 Windows/WebView2 设计和调研，包含 Windows
+> 路径、WebView2、WASAPI、OBS 和旧宿主假设。它不是当前 v0.5.0 的运行或安装说明。当前架构请先读
+> [`docs/architecture.md`](../architecture.md)、[`docs/linux-runtime.md`](../linux-runtime.md) 和
+> [`docs/protocol.md`](../protocol.md)。
+
+原始目标：让 spw-folia 插件在 WebView2 里托管 Folia 自己的可视化代码，1:1 复刻 **全屏歌词模式** 与 **歌词样式设置页**（截图 1）。
 所有文档基于 **Folia v0.7.21**：源码 `work/folia/folia-major-main`（AGPL-3.0），安装包 `C:\Program Files\Folia\resources\app.asar`（已解包到 `C:\tmp\asar`，临时目录）。
 
 ---

@@ -81,4 +81,4 @@ Folia 的 `VisPlaygroundSettingsPanel.tsx` 在 282 行渲染 `<SmartBeatSettings
 ## 4. 仍然「有开关但不生效」的功能
 
 未改动、但当前版本没有数据来源因此不产生视觉变化的功能，
-统一列在 [known-inert-settings.md](../known-inert-settings.md)。
+统一列在 [known-inert-settings.md](known-inert-settings.md)。

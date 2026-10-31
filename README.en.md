@@ -53,6 +53,13 @@ The settings and production page builds require the Folia source checkout at
 See [docs/linux-runtime.md](docs/linux-runtime.md), [docs/protocol.md](docs/protocol.md), and
 [docs/release.md](docs/release.md) for runtime, protocol, and packaging details.
 
+The current version notes and migration boundaries are in [docs/version-history.md](docs/version-history.md),
+with detailed v0.5.0 changes in [docs/release-notes-v0.5.0.md](docs/release-notes-v0.5.0.md).
+Older Windows release records are kept under [docs/archive/](docs/archive/). Some site videos and
+screenshots are also historical Windows-build material and do not describe current Linux support.
+The GitHub Pages deployment is documented in [docs/github-pages.md](docs/github-pages.md); the workflow
+uploads only the repository's `site/` directory as the Pages artifact.
+
 ## License
 
 AGPL-3.0-or-later. See [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and

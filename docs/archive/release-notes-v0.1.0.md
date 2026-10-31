@@ -1,5 +1,8 @@
 # spw-folia v0.1.0 — Folia lyric visualizer for Salt Player for Windows
 
+> **Historical Windows release.** This document is retained for release archaeology and is not a
+> current Linux installation guide. See [`docs/version-history.md`](../version-history.md).
+
 The first release of **spw-folia**, a [Salt Player for Windows](https://saltplayer.com/) creative-workshop
 plugin that brings [Folia](https://github.com/chthollyphile/folia-major)'s lyric visualization system into
 SPW: a **Folia** entry in the mini-player **更多** menu opens a borderless fullscreen Folia mode, powered by

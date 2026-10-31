@@ -1,5 +1,8 @@
 # spw-folia v0.1.1 — menu-item polish, cursor and settings fixes
 
+> **Historical Windows release.** This document is retained for release archaeology and is not a
+> current Linux installation guide. See [`docs/version-history.md`](../version-history.md).
+
 Patch release for [spw-folia v0.1.0](https://github.com/azkbzxf/spw-folia/releases/tag/v0.1.0).
 Install the same way: SPW 设置 → 插件 → 导入插件, enable, grant **class-transform**, restart if asked.
 

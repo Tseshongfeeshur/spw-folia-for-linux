@@ -1,5 +1,8 @@
 # spw-folia v0.1.7 — 播放页透明背景
 
+> **历史 Windows 版本。** 本文只记录旧版透明窗口实现，不是当前 Linux 版本的安装说明。请参阅
+> [`docs/version-history.md`](../version-history.md)。
+
 这一版给全屏播放页加上「播放页透明背景」：打开后宿主窗口变成真正的透明窗口，Folia 不再绘制背景，
 歌词与特效直接叠加在桌面或其它窗口之上，适合 OBS / 直播叠加。开关的位置与 SPW 播放页自己的
 「播放页透明背景」一致——进入全屏页后点**右下角的金色「调音台」圆钮**，面板里就是这一行开关。
@@ -25,7 +28,7 @@
 - **零插件改动** — 新字段 `transparentPlayerBackground` 走现有设置树（插件把整棵树原样持久化），
   宿主自己从 settings JSON 读该字段并切换窗口，重启后保持上次状态；`--no-transparency` 供诊断时强制关闭。
 
-机制与限制见 [live-transparency.md](../live-transparency.md)，验证见 [verification-v0.1.7.md](verification-v0.1.7.md)。
+机制与限制见 [live-transparency.md](live-transparency.md)，验证见 [verification-v0.1.7.md](verification-v0.1.7.md)。
 
 ## 验证
 

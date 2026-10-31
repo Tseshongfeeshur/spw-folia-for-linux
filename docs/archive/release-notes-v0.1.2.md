@@ -1,5 +1,8 @@
 # spw-folia v0.1.2 — cover colour fix, smart-beat switch removed
 
+> **Historical Windows release.** This document is retained for release archaeology and is not a
+> current Linux installation guide. See [`docs/version-history.md`](../version-history.md).
+
 Patch release for [spw-folia v0.1.1](https://github.com/azkbzxf/spw-folia/releases/tag/v0.1.1).
 Install the same way: SPW 设置 → 插件 → 导入插件, enable, grant **class-transform**,
 restart if asked (or disable/enable the plugin).
