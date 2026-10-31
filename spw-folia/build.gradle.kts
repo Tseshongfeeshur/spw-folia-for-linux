@@ -70,11 +70,11 @@ spmod {
     PluginName = "spw-folia"
     PluginDescription = "Folia fullscreen lyric mode for Salt Player on Linux Wayland"
     PluginVersion = "0.5.0"
-    PluginProvider = "azkbzxf"
+    PluginProvider = "azkbzxf, Ryan(tseshongfeeshur)"
     // Linux uses the standard shortcut and the Plasma tray; no private Salt Player config page is
     // required for opening or controlling the host.
     PluginHasConfig = false
-    PluginOpenSourceUrl = "https://github.com/azkbzxf/spw-folia"
+    PluginOpenSourceUrl = "https://github.com/tseshongfeeshur/spw-folia"
     // v0.3.2: KEY_BINDINGS backs the user-configurable open/close shortcut (SPW 快捷键管理).
     PluginPermissions = listOf(
         PluginPermission.LIBRARY_READ,

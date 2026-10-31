@@ -6,7 +6,7 @@ project works today. Current documentation lives one level up in [`docs/`](../).
 
 If you are looking for how to use or build the plugin, read the [README](../../README.md) instead.
 If you want to know what changed in a release, the per-release notes and the downloadable
-`.spmod` + `SHA256SUMS.txt` are on [GitHub Releases](https://github.com/azkbzxf/spw-folia/releases),
+`.spmod` + `SHA256SUMS.txt` are on [GitHub Releases](https://github.com/tseshongfeeshur/spw-folia/releases),
 and [`docs/release.md`](../release.md) keeps a compact artifact ledger.
 
 ## Contents

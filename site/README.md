@@ -4,7 +4,7 @@ A single-page, fully static promo site for spw-folia. No build step, no
 dependencies at runtime, no network requests — open `index.html` and it works
 (though a local HTTP server is better for the videos' range requests).
 
-Deployed to **https://azkbzxf.github.io/spw-folia/** by
+Deployed to **https://tseshongfeeshur.github.io/spw-folia/** by
 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) on every push
 that touches `site/**`.
 

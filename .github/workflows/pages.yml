@@ -1,6 +1,6 @@
 name: Deploy promo site
 
-# Publishes site/ to GitHub Pages at https://azkbzxf.github.io/spw-folia/
+# Publishes site/ to GitHub Pages at https://tseshongfeeshur.github.io/spw-folia/
 # The site is fully static and self-contained (no build step, no network calls),
 # so the only work here is uploading the directory.
 on:
