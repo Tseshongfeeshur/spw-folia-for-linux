@@ -31,6 +31,7 @@ internal class FoliaSettingsStore(
 
     @Volatile private var lastSaved: String? = null
     @Volatile private var pending: String? = null
+    @Volatile private var flusherArmed = false
     private var pendingSince: Long = 0L
 
     /** Loads the persisted tree, falling back to the bundled canonical default tree. */
@@ -99,11 +100,11 @@ internal class FoliaSettingsStore(
         }
     }
 
-    private fun flushIfDue() {
+    private fun flushIfDue(force: Boolean = false) {
         val tree = pending ?: return
         synchronized(this) {
             val since = pendingSince
-            if (since == 0L || System.currentTimeMillis() - since < DEBOUNCE_MS) return
+            if (!force && (since == 0L || System.currentTimeMillis() - since < DEBOUNCE_MS)) return
             pendingSince = 0L
             pending = null
         }
@@ -120,13 +121,15 @@ internal class FoliaSettingsStore(
     }
 
     fun shutdown() {
+        // Do not lose a settings edit when the plugin is disabled during the debounce window.
+        flushIfDue(force = true)
         executor.shutdownNow()
     }
 
     private fun defaultTree(): String {
         val candidates = listOf(
             { javaClass.getResourceAsStream("/default-settings.json") },
-            { File(FoliaPlugin.devRoot(), "packaging/testdata/default-settings.json").inputStream() }
+            { File(System.getenv("SPW_FOLIA_DEV_ROOT") ?: ".", "packaging/testdata/default-settings.json").inputStream() }
         )
         for (candidate in candidates) {
             try {
@@ -147,7 +150,5 @@ internal class FoliaSettingsStore(
         /** `"textureResolution":1.5` in the compact JSON the settings UI persists. */
         private val TEXTURE_15 = Regex("\"textureResolution\"\\s*:\\s*1\\.5(?=[,}])")
 
-        @Volatile
-        private var flusherArmed = false
     }
 }

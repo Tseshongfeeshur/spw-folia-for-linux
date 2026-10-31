@@ -11,7 +11,6 @@ import {
     BACKGROUND_TUNING_DEFAULTS,
     DEFAULT_COMMON_BACKGROUND,
 } from '~/model/settings';
-import { suppressesClosingPoster, transparentStyleTuning } from '~/model/transparencyCompat';
 import { normalizeRandomModes } from '~/model/settings';
 import { parseFontFamilyStack } from './themeFonts';
 import { DEFAULT_THEME } from './deriveTheme';
@@ -68,7 +67,7 @@ export interface ConfigPublisherBridge {
  *
  * They are NOT in the 0.7.22 checkout's `ObsBrowserSourceConfig` declaration (that type still lists
  * only `lyricsFontScale`), but the shipped bundle maps them onto its own store — verified in
- * poc/webview/dist/dist/assets/bootstrap-DJI6ZImv.js:
+ * work/folia/folia-major-main/dist/assets/bootstrap-*.js:
  *   ...e.lyricsFontStyle&&(t.lfs=e.lyricsFontStyle), e.lyricsFontFallbackFamilies?.length&&(t.lff=
  *   e.lyricsFontFallbackFamilies), e.lyricsCustomFontFamily&&(t.lcf=e.lyricsCustomFontFamily), ...
  *   Array.isArray(e.randomVisualizerModes)&&(t.randomVisualizerModes=Iu(e.randomVisualizerModes))
@@ -148,9 +147,7 @@ export const buildBackgroundConfig = (settings: SettingsSnapshot) => {
     });
     return {
         mode: settings.backgroundMode,
-        // v0.1.7: the player page runs the real renderer, so transparency is a real window property
-        // (host colour-key) plus `background.transparent` for Folia's own background renderer.
-        transparent: settings.transparentPlayerBackground === true,
+        transparent: false,
         common: { ...DEFAULT_COMMON_BACKGROUND, ...settings.commonBackground },
         latent: tuning('latent'),
         monet: tuning('monet'),
@@ -162,23 +159,12 @@ export const buildBackgroundConfig = (settings: SettingsSnapshot) => {
 
 /** Every style's tuning, keyed by mode exactly as Folia's `VisualizerTuningBundle` expects.
  *
- *  v0.2.0: while the player window is transparent, styles that paint a large semi-transparent
- *  plate get a render-only override merged in (see `model/transparencyCompat.ts`). The override is
- *  applied here and not in the settings store, so it disappears as soon as transparency is off and
- *  the user's own tuning values are never touched. */
-export const buildTuningBundle = (
-    settings: SettingsSnapshot,
-    options?: { transparent?: boolean; isDaylight?: boolean },
-): VisualizerTuningBundle => {
+ */
+export const buildTuningBundle = (settings: SettingsSnapshot): VisualizerTuningBundle => {
     const bundle: Record<string, Record<string, unknown>> = {};
     for (const [mode, tuning] of Object.entries(settings.styleTunings)) {
         if (mode === 'still') continue;
         bundle[mode] = tuning;
-    }
-    if (options?.transparent === true) {
-        const styleMode = settings.styleId as StyleMode;
-        const override = transparentStyleTuning(styleMode, { isDaylight: options.isDaylight === true });
-        if (override) bundle[styleMode] = { ...bundle[styleMode], ...override };
     }
     return bundle as VisualizerTuningBundle;
 };
@@ -194,12 +180,6 @@ export const buildConfig = ({ settings, track, theme, subtitleTheme, isDaylight,
         ? 'translation'
         : subtitle.subtitleContentMode as SubtitleContentMode;
     const coverUrl = track?.coverUrl ?? null;
-    // issue #11: 凝彩 ends a song on an opaque full-bleed closing poster that the colour-key window
-    // cannot cut through. Its only lever is the song metadata it is built from, so while the window
-    // is transparent this style publishes no title/artist/album and the poster is never built
-    // (`suppressesClosingPoster` in model/transparencyCompat.ts explains the derivation).
-    const closingPosterHidden = settings.transparentPlayerBackground === true
-        && suppressesClosingPoster(settings.styleId as StyleMode, { isDaylight });
     // v0.4.0 (Folia 0.7.22): the lyric font and the 随机歌词样式 pool travel in the config. The page
     // maps both onto its own stores (`lyricsFontStyle`/`lyricsCustomFontFamily` →
     // handleSetLyricsCustomFont({source:'system'}), `randomVisualizerModes` →
@@ -229,19 +209,16 @@ export const buildConfig = ({ settings, track, theme, subtitleTheme, isDaylight,
         activePlaybackContext: 'main',
         stageSource: null,
         hasTrack: Boolean(track),
-        song: track && !closingPosterHidden ? { id: track.id, name: track.title } : null,
-        songArtist: closingPosterHidden ? null : (track?.artist ?? null),
-        songAlbum: closingPosterHidden ? null : (track?.album ?? null),
+        song: track ? { id: track.id, name: track.title } : null,
+        songArtist: track?.artist ?? null,
+        songAlbum: track?.album ?? null,
         coverUrl,
         lyrics,
         theme: theme ?? DEFAULT_THEME,
         subtitleTheme: subtitleTheme ?? theme ?? DEFAULT_THEME,
         isDaylight,
         visualizerMode: settings.styleId as ObsBrowserSourceConfig['visualizerMode'],
-        visualizerTunings: buildTuningBundle(settings, {
-            transparent: settings.transparentPlayerBackground === true,
-            isDaylight,
-        }),
+        visualizerTunings: buildTuningBundle(settings),
         background: buildBackgroundConfig(settings) as ObsBrowserSourceConfig['background'],
         lyricsFontScale: clamp(appearance.fontScale, 0.85, 1.4),
         subtitleFontScale: clamp(subtitle.subtitleFontScale, 0.85, 1.4),

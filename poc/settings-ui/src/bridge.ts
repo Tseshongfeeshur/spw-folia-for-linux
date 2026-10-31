@@ -1,11 +1,8 @@
-/* The page-side bridge. When injected by the host, `window.__SPW_FOLIA__` is the Shim's object and
- * every call is forwarded to the host; when opened directly (dev.html, screenshots) a fake bridge
- * answers with demo data and logs pushed configs. Protocol: docs/protocol.md §3. */
+/* Page-side bridge shared by the Qt host and the browser preview harness. */
 import type { ObsBrowserSourceConfig } from '@/types/obsBrowserSource';
-import type { Theme } from '@/types';
 import { useSettingsStore, snapshotFromState, applySnapshot, type SettingsSnapshot } from '~/model/settings';
 
-export type BridgeEventType = 'hello' | 'settings' | 'state' | 'lyrics' | 'track' | 'audio' | 'config' | 'beat' | 'settingsUI' | 'queue' | 'envReport';
+export type BridgeEventType = 'hello' | 'settings' | 'state' | 'lyrics' | 'track' | 'audio' | 'config' | 'ui';
 
 export interface BridgeStateMessage {
     currentTime: number;
@@ -21,81 +18,39 @@ export interface BridgeTrackMessage {
     title: string;
     artist?: string | null;
     album?: string | null;
-    /** Preferred spelling (Folia's config type). */
     coverUrl?: string | null;
-    /** The plugin/host also report the cover under this name; `bridgeTrackCover` accepts both. */
     coverDataUrl?: string | null;
     durationMs?: number;
     lyrics?: unknown;
 }
 
-/* v0.3.0: playback control channel (docs/protocol.md §3.1 `control` / §3.4). The page only asks;
- * the plugin is the control sink, the host just relays. */
-export type PlaybackControlAction = 'toggle' | 'previous' | 'next' | 'seek' | 'shuffle' | 'queue-play';
+export type PlaybackControlAction = 'toggle' | 'previous' | 'next' | 'seek';
+export interface PlaybackControlExtra { positionMs?: number }
+export interface PlaybackControlPayload extends PlaybackControlExtra { action: PlaybackControlAction }
 
-export interface PlaybackControlExtra {
-    /** `seek` target in milliseconds (clamped by the plugin). */
-    positionMs?: number;
-    /** `queue-play` row index. */
-    index?: number;
-    /** `queue-play`: play the random queue instead of the normal one. */
-    random?: boolean;
-}
-
-export interface PlaybackControlPayload extends PlaybackControlExtra {
-    action: PlaybackControlAction;
-}
-
-/** One row of the current playback queue (protocol §3.2 `queue`). */
-export interface QueueItem {
-    id: string;
-    title: string;
-    artist: string;
-    album?: string;
-}
-
-/** Current queue snapshot: `random` selects the random queue and `index` points into `items`. */
-export interface PlaybackQueueSnapshot {
-    mode: 'circle' | 'circle-end' | 'repeat-one' | 'random';
-    random: boolean;
-    index: number;
-    items: QueueItem[];
-}
-
-/** The cover can arrive as `coverUrl` (page/config naming) or `coverDataUrl` (plugin naming). */
 export const bridgeTrackCover = (track: BridgeTrackMessage | null | undefined): string | null => {
-    if (!track) return null;
-    const value = track.coverUrl ?? track.coverDataUrl ?? null;
+    const value = track?.coverUrl ?? track?.coverDataUrl ?? null;
     return typeof value === 'string' && value.length > 0 ? value : null;
 };
+
+interface SettingsUiApi {
+    isSettingsOpen: () => boolean;
+    openSettings: () => void;
+    closeSettings: () => void;
+}
 
 export interface SpwFoliaBridge {
     protocol?: number;
     on: (type: string, listener: (payload: never) => void) => (() => void) | void;
+    off?: (type: string, listener: (payload: never) => void) => void;
     emit: (type: string, payload?: unknown) => void;
     pushConfig: (config: ObsBrowserSourceConfig) => void;
     getSettings: () => unknown;
     setSettings: (partial: unknown) => void;
     requestClose?: () => void;
-    /** v0.4.1: the last config the player page received (Shim.js keeps it for the real preview). */
     lastConfig?: () => ObsBrowserSourceConfig | null;
-    inputs?: {
-        state?: BridgeStateMessage | null;
-        lyrics?: unknown;
-        track?: BridgeTrackMessage | null;
-        /** v0.3.0: last `queue` snapshot the host sent; may be absent on older shims. */
-        queue?: PlaybackQueueSnapshot | null;
-        /** v0.4.2 (issue #12): last environment report the host produced; absent on older shims. */
-        envReport?: EnvReport | null;
-    };
-    /** protocol §7.5: overlay-only settings control surface the host drives (no page reload). */
+    inputs?: { state?: BridgeStateMessage | null; lyrics?: unknown; track?: BridgeTrackMessage | null };
     ui?: SettingsUiApi;
-}
-
-export interface SettingsUiApi {
-    isSettingsOpen: () => boolean;
-    openSettings: () => void;
-    closeSettings: () => void;
 }
 
 interface SettingsUiController {
@@ -109,8 +64,8 @@ declare global {
     interface Window {
         __SPW_FOLIA__?: SpwFoliaBridge;
         __SPW_FOLIA_UI__?: SettingsUiController;
+        __SPW_FOLIA_SETTINGS_UI__?: SettingsUiController;
         __SPW_FOLIA_LAST_CONFIG__?: ObsBrowserSourceConfig;
-        /** v0.3.0 dev-only: every `control` the page emitted, in order (fake bridge + verify scripts). */
         __SPW_FOLIA_TEST_CONTROLS__?: PlaybackControlPayload[];
     }
 }
@@ -119,201 +74,78 @@ const listeners = new Map<string, Set<(payload: unknown) => void>>();
 
 const emitLocally = (type: string, payload: unknown): void => {
     for (const listener of listeners.get(type) ?? []) {
-        try {
-            listener(payload);
-        } catch (error) {
-            console.error('[settings-ui] bridge listener failed', type, error);
-        }
+        try { listener(payload); } catch (error) { console.error('[settings-ui] bridge listener failed', type, error); }
     }
 };
 
-/** Demo track so a directly opened page still builds a complete config. */
 export const DEMO_TRACK: BridgeTrackMessage = {
-    id: 'spike-song',
-    title: 'Spike Track',
-    artist: 'Folia',
-    album: 'POC',
-    coverUrl: null,
-    lyrics: {
-        lines: [
-            { startMs: 0, endMs: 4000, main: '静かな夜に', sub: '在寂静的夜里' },
-            { startMs: 4000, endMs: 8000, main: '光が満ちて', sub: '光芒洒满' },
-            { startMs: 8000, endMs: 12000, main: '君の声が', sub: '你的声音' },
-            { startMs: 12000, endMs: 16000, main: '遠くへ響く', sub: '响彻远方' },
-        ],
-    },
+    id: 'spike-song', title: 'Spike Track', artist: 'Folia', album: 'POC', coverUrl: null,
+    lyrics: { lines: [
+        { startMs: 0, endMs: 4000, main: '静かな夜に', sub: '在寂静的夜里' },
+        { startMs: 4000, endMs: 8000, main: '光が満ちて', sub: '光芒洒满' },
+        { startMs: 8000, endMs: 12000, main: '君の声が', sub: '你的声音' },
+        { startMs: 12000, endMs: 16000, main: '遠くへ響く', sub: '响彻远方' },
+    ] },
 };
 
-const DEMO_THEME: Theme = {
-    name: 'Midnight Default',
-    backgroundColor: '#09090b',
-    primaryColor: '#f4f4f5',
-    accentColor: '#f4f4f5',
-    secondaryColor: '#71717a',
-    fontStyle: 'sans',
-    animationIntensity: 'normal',
-};
-
-const isInjected = (): boolean => typeof window.__SPW_FOLIA__ === 'object' && window.__SPW_FOLIA__ !== null;
-
-let bridgeInstance: SpwFoliaBridge | null = null;
-
-/* v0.3.0 · fake bridge playback model (dev.html only). It mirrors what the plugin/host send back:
- * a queue snapshot plus state/track events, so the playback HUD and the queue panel have real
- * feedback while clicking around without a host. */
-const DEMO_QUEUE: QueueItem[] = [
-    { id: DEMO_TRACK.id, title: DEMO_TRACK.title, artist: DEMO_TRACK.artist ?? 'Folia', album: DEMO_TRACK.album ?? undefined },
+const demoTracks: BridgeTrackMessage[] = [
+    DEMO_TRACK,
     { id: 'demo-02', title: '夜航星', artist: '不才', album: '夜航星' },
     { id: 'demo-03', title: '星间旅行 Interstellar Journey', artist: '知更鸟, HOYO-MiX' },
-    { id: 'demo-04', title: 'Lemon', artist: '米津玄師', album: 'Lemon' },
-    { id: 'demo-05', title: '花に亡霊', artist: 'ヨルシカ', album: '盗作' },
-    { id: 'demo-06', title: '群青', artist: 'YOASOBI', album: 'THE BOOK' },
-    { id: 'demo-07', title: '光るなら', artist: 'Goose house' },
 ];
-
 const DEMO_DURATION_MS = 245_000;
+let bridgeInstance: SpwFoliaBridge | null = null;
+let demoIndex = 0;
+let demoPlaying = true;
+let demoPositionMs = 31_000;
+let demoAtMs = Date.now();
+let demoDurationMs = DEMO_DURATION_MS;
 
-interface FakePlaybackModel {
-    index: number;
-    playing: boolean;
-    /** position at `atMs`; the clock is extrapolated lazily so no interval churns dev renders */
-    positionMs: number;
-    atMs: number;
-    durationMs: number;
-    mode: PlaybackQueueSnapshot['mode'];
-}
+const isInjected = (): boolean => !!window.__SPW_FOLIA__;
+const demoPosition = (): number => Math.min(demoDurationMs, Math.max(0, demoPositionMs + (demoPlaying ? Date.now() - demoAtMs : 0)));
 
-const fakePlayback: FakePlaybackModel = {
-    index: 0,
-    playing: true,
-    positionMs: 31_000,
-    atMs: Date.now(),
-    durationMs: DEMO_DURATION_MS,
-    mode: 'circle',
-};
-
-const fakePosition = (): number => {
-    const model = fakePlayback;
-    const position = model.playing ? model.positionMs + (Date.now() - model.atMs) : model.positionMs;
-    return Math.min(Math.max(0, position), model.durationMs);
-};
-
-const fakeQueueSnapshot = (): PlaybackQueueSnapshot => ({
-    mode: fakePlayback.mode,
-    random: fakePlayback.mode === 'random',
-    index: fakePlayback.index,
-    items: DEMO_QUEUE.map(item => ({ ...item })),
-});
-
-const updateFakeInputs = (patch: Partial<NonNullable<SpwFoliaBridge['inputs']>>): void => {
-    if (!bridgeInstance) return;
-    bridgeInstance.inputs = { ...(bridgeInstance.inputs ?? {}), ...patch };
-};
-
-const emitFakeState = (): void => {
-    const posMs = Math.round(fakePosition());
-    updateFakeInputs({
-        state: {
-            currentTime: posMs / 1000,
-            duration: fakePlayback.durationMs / 1000,
-            playerState: fakePlayback.playing ? 'PLAYING' : 'PAUSED',
-            sentAtMs: Date.now(),
-            playbackRate: 1,
-        },
-    });
-    emitLocally('state', {
-        posMs,
-        durationMs: fakePlayback.durationMs,
-        playing: fakePlayback.playing,
-        rate: 1,
-        tsMs: Date.now(),
-    });
-};
-
-const emitFakeTrack = (): void => {
-    const item = DEMO_QUEUE[fakePlayback.index] ?? DEMO_QUEUE[0];
-    const payload: BridgeTrackMessage = {
-        id: item.id,
-        title: item.title,
-        artist: item.artist,
-        album: item.album ?? null,
-        durationMs: fakePlayback.durationMs,
+const emitDemoState = (): void => {
+    const posMs = Math.round(demoPosition());
+    const state: BridgeStateMessage = {
+        currentTime: posMs / 1000, duration: demoDurationMs / 1000,
+        playerState: demoPlaying ? 'PLAYING' : 'PAUSED', sentAtMs: Date.now(), playbackRate: 1,
     };
-    updateFakeInputs({ track: payload });
-    emitLocally('track', payload);
+    if (bridgeInstance) bridgeInstance.inputs = { ...bridgeInstance.inputs, state };
+    emitLocally('state', { posMs, durationMs: demoDurationMs, playing: demoPlaying, rate: 1, tsMs: Date.now() });
 };
 
-const emitFakeQueue = (): void => {
-    const snapshot = fakeQueueSnapshot();
-    updateFakeInputs({ queue: snapshot });
-    emitLocally('queue', snapshot);
+const emitDemoTrack = (): void => {
+    const track = { ...demoTracks[demoIndex], durationMs: demoDurationMs };
+    if (bridgeInstance) bridgeInstance.inputs = { ...bridgeInstance.inputs, track };
+    emitLocally('track', track);
 };
 
-/** Play the semantic meaning of every control the page sends, then push the resulting snapshot. */
-const handleFakeControl = (raw: unknown): void => {
-    const payload = (raw ?? {}) as Partial<PlaybackControlPayload>;
-    const action = payload.action;
-    if (!action) return;
-    const record: PlaybackControlPayload = { action };
-    if (typeof payload.positionMs === 'number') record.positionMs = payload.positionMs;
-    if (typeof payload.index === 'number') record.index = payload.index;
-    if (typeof payload.random === 'boolean') record.random = payload.random;
-    window.__SPW_FOLIA_TEST_CONTROLS__ = window.__SPW_FOLIA_TEST_CONTROLS__ ?? [];
-    window.__SPW_FOLIA_TEST_CONTROLS__.push(record);
-
-    const model = fakePlayback;
-    switch (action) {
+const handleDemoControl = (value: unknown): void => {
+    const control = value as Partial<PlaybackControlPayload>;
+    if (!control.action) return;
+    const record: PlaybackControlPayload = { action: control.action };
+    if (typeof control.positionMs === 'number') record.positionMs = control.positionMs;
+    window.__SPW_FOLIA_TEST_CONTROLS__ = [...(window.__SPW_FOLIA_TEST_CONTROLS__ ?? []), record];
+    switch (control.action) {
         case 'toggle':
-            model.positionMs = fakePosition();
-            model.atMs = Date.now();
-            model.playing = !model.playing;
-            emitFakeState();
+            demoPositionMs = demoPosition(); demoAtMs = Date.now(); demoPlaying = !demoPlaying;
+            emitDemoState();
             break;
         case 'previous':
-        case 'next': {
-            const step = action === 'next' ? 1 : -1;
-            model.index = (model.index + step + DEMO_QUEUE.length) % DEMO_QUEUE.length;
-            model.positionMs = 0;
-            model.atMs = Date.now();
-            emitFakeTrack();
-            emitFakeQueue();
-            emitFakeState();
+        case 'next':
+            demoIndex = (demoIndex + (control.action === 'next' ? 1 : -1) + demoTracks.length) % demoTracks.length;
+            demoPositionMs = 0; demoAtMs = Date.now(); emitDemoTrack(); emitDemoState();
             break;
-        }
         case 'seek':
-            model.positionMs = Math.min(Math.max(0, record.positionMs ?? fakePosition()), model.durationMs);
-            model.atMs = Date.now();
-            emitFakeState();
-            break;
-        case 'shuffle':
-            model.mode = model.mode === 'random' ? 'circle' : 'random';
-            emitFakeQueue();
-            break;
-        case 'queue-play': {
-            const index = record.index ?? model.index;
-            if (index < 0 || index >= DEMO_QUEUE.length) return;
-            model.index = index;
-            model.positionMs = 0;
-            model.atMs = Date.now();
-            emitFakeTrack();
-            emitFakeQueue();
-            emitFakeState();
-            break;
-        }
-        default:
+            demoPositionMs = Math.max(0, Math.min(demoDurationMs, control.positionMs ?? demoPosition()));
+            demoAtMs = Date.now(); emitDemoState();
             break;
     }
 };
 
-/** Fake bridge for running the bundle in a plain browser (`pnpm dev` → dev.html). */
 const createFakeBridge = (): SpwFoliaBridge => {
-    window.__SPW_FOLIA_TEST_CONTROLS__ = window.__SPW_FOLIA_TEST_CONTROLS__ ?? [];
-    // Mirror the host replay order: state → track → queue (docs/playback-controls.md §3.1).
-    window.setTimeout(() => {
-        emitFakeTrack();
-        emitFakeQueue();
-        emitFakeState();
-    }, 0);
+    window.__SPW_FOLIA_TEST_CONTROLS__ = [];
+    window.setTimeout(() => { emitDemoTrack(); emitDemoState(); }, 0);
     return {
         protocol: 1,
         on: (type, listener) => {
@@ -323,130 +155,40 @@ const createFakeBridge = (): SpwFoliaBridge => {
             return () => set.delete(listener as (payload: unknown) => void);
         },
         emit: (type, payload) => {
-            // v0.3.0: `control` does not echo locally — the fake bridge plays the player's part.
-            if (type === 'control') {
-                handleFakeControl(payload);
-                return;
-            }
-            emitLocally(type, payload);
+            if (type === 'control') handleDemoControl(payload);
+            else emitLocally(type, payload);
         },
-        pushConfig: config => {
-            window.__SPW_FOLIA_LAST_CONFIG__ = config;
-            console.info('[settings-ui] pushConfig', config);
-        },
+        pushConfig: config => { window.__SPW_FOLIA_LAST_CONFIG__ = config; emitLocally('config', config); },
         getSettings: () => null,
-        setSettings: partial => {
-            console.info('[settings-ui] setSettings', partial);
-        },
+        setSettings: partial => console.info('[settings-ui] setSettings', partial),
         requestClose: () => console.info('[settings-ui] requestClose'),
-        inputs: { state: null, lyrics: null, track: DEMO_TRACK, queue: fakeQueueSnapshot() },
+        inputs: { state: null, lyrics: DEMO_TRACK.lyrics, track: DEMO_TRACK },
     };
 };
 
 export const getBridge = (): SpwFoliaBridge => {
     if (bridgeInstance) return bridgeInstance;
-    if (!isInjected()) {
-        // Dev harness parity: expose the fake bridge on the same global the host page provides so
-        // scripts and the chrome contract (`__SPW_FOLIA__.ui`) behave identically in both contexts.
-        bridgeInstance = createFakeBridge();
-        window.__SPW_FOLIA__ = bridgeInstance;
-        return bridgeInstance;
-    }
-    bridgeInstance = window.__SPW_FOLIA__ as SpwFoliaBridge;
+    bridgeInstance = isInjected() ? window.__SPW_FOLIA__ as SpwFoliaBridge : createFakeBridge();
+    if (!isInjected()) window.__SPW_FOLIA__ = bridgeInstance;
     return bridgeInstance;
 };
 
 export const bridgeIsInjected = (): boolean => isInjected();
 
-/* ---------------------------------------------------------------------------------------------
- * issue #12 增加日志功能 — 「出现问题」 diagnostics channel.
- *
- * The host owns the native half of the environment report (WebView2 runtime, .NET release, native
- * files beside the helper, bundle/settings presence, writable user-data dir); the plugin owns the
- * other half (SPW version, permissions, logs, feedback URL). The page only orchestrates: ask the
- * host for `envReport`, merge it with what it can see itself, then either show the missing pieces or
- * hand the assembled text to the host's browser/log-folder actions.
- * ------------------------------------------------------------------------------------------- */
-
-/** The host's `envReport` payload (HostForm.BuildEnvReport); every field is best-effort. */
-export interface EnvReport {
-    hostVersion?: string;
-    pid?: number;
-    protocol?: string;
-    startedAtMs?: number;
-    webView2?: string | null;
-    dotnet?: string | null;
-    os?: string | null;
-    os64?: boolean;
-    process64?: boolean;
-    bundle?: string | null;
-    bundleIndex?: boolean;
-    settingsDir?: string | null;
-    settingsEntry?: boolean;
-    userData?: string | null;
-    nativeFiles?: { dir?: string | null; present?: string[]; missing?: string[] } | null;
-    dpi?: number;
-    dpiAwareness?: string | null;
-    screen?: string;
-    transparent?: boolean;
-    audio?: string | null;
-    fps?: number;
-    statesReceived?: number;
-    framesPosted?: number;
-    droppedLogLines?: number;
-    logPath?: string | null;
-}
-
-/** Request the native environment report; resolves to null when the host never answers. */
-export const requestEnvReport = (timeoutMs = 4000): Promise<EnvReport | null> => new Promise(resolve => {
-    if (!isInjected()) {
-        // Browser dev: no host, but the panel still works with what the page knows.
-        resolve(null);
-        return;
-    }
-    const timer = window.setTimeout(() => {
-        off();
-        resolve(null);
-    }, timeoutMs);
-    const off = bridgeOn<EnvReport>('envReport', report => {
-        window.clearTimeout(timer);
-        off();
-        resolve(report ?? null);
-    });
-    getBridge().emit('envCheck');
-});
-
-/** Ask the host to open Explorer in the log directory with the log file selected. */
-export const openLogFolder = (path?: string | null): void => {
-    getBridge().emit('openLogFolder', path ? { path } : {});
-};
-
-/** Ask the host to open an http(s) URL in the default browser (the host rejects other schemes). */
-export const openExternalUrl = (url: string): void => {
-    getBridge().emit('openUrl', { url });
-};
-
-/** The plugin's feedback URL (GitHub issue form) — kept here so the host and the page agree. */
-export const FEEDBACK_ISSUE_URL = 'https://github.com/azkbzxf/spw-folia/issues/new';
-
-
 export const bridgeOn = <T,>(type: string, listener: (payload: T) => void): (() => void) => {
     const bridge = getBridge();
-    const off = bridge.on(type, listener as never);
-    return typeof off === 'function' ? off : () => emitLocally(`off:${type}`, null);
+    const callback = listener as never;
+    const off = bridge.on(type, callback);
+    if (typeof off === 'function') return off;
+    if (bridge.off) return () => bridge.off?.(type, callback);
+    return () => undefined;
 };
 
-/** v0.3.0: page → player control request. The host relays it to the plugin on stdin; the page never
- *  mutates playback state itself, it waits for the echoed `state`/`queue` snapshots. */
 export const sendPlaybackControl = (action: PlaybackControlAction, extra: PlaybackControlExtra = {}): void => {
     getBridge().emit('control', { action, ...extra });
 };
 
-/** Settings emits are throttled to <=10 Hz (protocol §3.3) and skipped entirely when the snapshot
- *  did not change. The host echoes every accepted `setSettings` back as a `settings` event, so an
- *  emit made from inside that echo would loop; `applyingRemote` guards against it. */
 export const SETTINGS_EMIT_MIN_INTERVAL_MS = 100;
-
 let applyingRemote = false;
 let pendingSnapshot: SettingsSnapshot | null = null;
 let pendingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -454,204 +196,68 @@ let lastEmitAt = 0;
 let lastEmitJson = '';
 
 const flushSettingsEmit = (): void => {
-    const queued = pendingSnapshot;
+    const snapshot = pendingSnapshot;
     pendingSnapshot = null;
-    if (!queued) return;
+    if (!snapshot) return;
     lastEmitAt = Date.now();
-    lastEmitJson = JSON.stringify(queued);
-    getBridge().setSettings?.(queued);
+    lastEmitJson = JSON.stringify(snapshot);
+    getBridge().setSettings(snapshot);
 };
 
-const scheduleSettingsEmit = (snapshot: SettingsSnapshot, force = false): void => {
-    const json = JSON.stringify(snapshot);
-    if (!force && json === lastEmitJson) return;
+const scheduleSettingsEmit = (snapshot: SettingsSnapshot): void => {
+    if (JSON.stringify(snapshot) === lastEmitJson) return;
     pendingSnapshot = snapshot;
     const wait = Math.max(0, SETTINGS_EMIT_MIN_INTERVAL_MS - (Date.now() - lastEmitAt));
     if (wait === 0) {
-        if (pendingTimer) {
-            clearTimeout(pendingTimer);
-            pendingTimer = null;
-        }
-        flushSettingsEmit();
-        return;
-    }
-    if (pendingTimer) return;
-    pendingTimer = setTimeout(() => {
+        if (pendingTimer) clearTimeout(pendingTimer);
         pendingTimer = null;
         flushSettingsEmit();
-    }, wait);
+    } else if (!pendingTimer) {
+        pendingTimer = setTimeout(() => { pendingTimer = null; flushSettingsEmit(); }, wait);
+    }
 };
 
-/** v0.2.0: `applySnapshot` drops the transparent window when the snapshot's style cannot render it
- *  (monet, or lumiere on a light cover). Remote snapshots are guarded by `applyingRemote`, so that
- *  correction would never be reported back and the host would keep the window keyed. Re-emit the
- *  corrected snapshot whenever the incoming one asked for transparency but the store ended up off. */
-const emitBlockedTransparencyCorrection = (incoming: Partial<SettingsSnapshot> | null | undefined): void => {
-    if (!incoming || incoming.transparentPlayerBackground !== true) return;
-    const state = useSettingsStore.getState();
-    if (state.transparentPlayerBackground) return;
-    scheduleSettingsEmit(snapshotFromState(state), true);
-};
-
-/** v0.2.0: push the current store snapshot to the host even when it did not change. Needed when the
- *  host switched the window into colour-key mode on its own (the Ctrl+Alt+B hotkey path) and the
- *  selected style refuses that mode — the page has to tell the host to drop the key again. */
-export const forceEmitSettings = (): void => {
-    scheduleSettingsEmit(snapshotFromState(useSettingsStore.getState()), true);
-};
-
-/** Settings round trip: host pushes the persisted snapshot, the UI reports changes back (<=10 Hz). */
 export const subscribeSettingsRoundTrip = (): (() => void) => {
     const bridge = getBridge();
     const incoming = bridge.getSettings?.();
-    if (incoming && typeof incoming === 'object') {
-        applySnapshot(incoming as Partial<SettingsSnapshot>);
-        emitBlockedTransparencyCorrection(incoming as Partial<SettingsSnapshot>);
-    }
-
+    if (incoming && typeof incoming === 'object') applySnapshot(incoming as Partial<SettingsSnapshot>);
     const off = bridgeOn<SettingsSnapshot>('settings', snapshot => {
         applyingRemote = true;
-        try {
-            applySnapshot(snapshot);
-        } finally {
-            applyingRemote = false;
-        }
-        emitBlockedTransparencyCorrection(snapshot);
+        try { applySnapshot(snapshot); } finally { applyingRemote = false; }
     });
-
     lastEmitJson = JSON.stringify(snapshotFromState(useSettingsStore.getState()));
     const unsubscribe = useSettingsStore.subscribe(state => {
-        if (applyingRemote) return;
-        scheduleSettingsEmit(snapshotFromState(state));
+        if (!applyingRemote) scheduleSettingsEmit(snapshotFromState(state));
     });
-
-    // dev: let "save" buttons or the console drive settings too
     emitLocally('bridgeReady', { injected: isInjected() });
     return () => {
-        off();
-        unsubscribe();
-        if (pendingTimer) {
-            clearTimeout(pendingTimer);
-            pendingTimer = null;
-        }
-        pendingSnapshot = null;
+        off(); unsubscribe();
+        if (pendingTimer) clearTimeout(pendingTimer);
+        pendingTimer = null; pendingSnapshot = null;
     };
 };
 
-/** The host drives the window through `window.__SPW_FOLIA_UI__` (ExecuteScriptAsync) or a
- *  `settingsUI` bridge event; the page never decides on its own to cover the stage.
- *
- *  The Shim in poc/webview/host/Shim.js emits the agreed contract as `ui` events with
- *  `action: 'toggle-settings' | 'open-settings' | 'close-settings'` (F1 / host `command`), and also
- *  calls `window.__SPW_FOLIA_SETTINGS_UI__` directly when it exists — both names are exposed here. */
-const uiActionToCommand = (action: string | undefined): 'open' | 'close' | 'toggle' => {
-    switch (action) {
-        case 'open':
-        case 'open-settings':
-        case 'settings-open':
-            return 'open';
-        case 'close':
-        case 'close-settings':
-        case 'settings-close':
-            return 'close';
-        default:
-            return 'toggle';
-    }
-};
+const isSettingsUiOpen = (): boolean => openState;
+let openState = false;
+export const setSettingsUiOpenState = (open: boolean): void => { openState = open; };
 
 export const registerSettingsUiController = (controls: { open: () => void; close: () => void }): (() => void) => {
     const controller: SettingsUiController = {
-        open: controls.open,
-        close: controls.close,
+        ...controls,
         toggle: () => (isSettingsUiOpen() ? controls.close() : controls.open()),
         isOpen: isSettingsUiOpen,
     };
     window.__SPW_FOLIA_UI__ = controller;
     window.__SPW_FOLIA_SETTINGS_UI__ = controller;
-    // protocol §7.5: `__SPW_FOLIA__.ui` is the stable host-facing surface; the object is created by
-    // Shim.js before this bundle runs, so the page augments it instead of replacing it.
     getBridge().ui = {
-        isSettingsOpen: () => isSettingsUiOpen(),
-        openSettings: () => controller.open(),
-        closeSettings: () => controller.close(),
+        isSettingsOpen: isSettingsUiOpen,
+        openSettings: controls.open,
+        closeSettings: controls.close,
     };
-    const offLocal = bridgeOn<{ action?: string }>('settingsUI', payload => {
-        if (!payload?.action) return;
-        const action = uiActionToCommand(payload?.action);
-        if (action === 'open') controller.open();
-        else if (action === 'close') controller.close();
-        else controller.toggle();
+    const off = bridgeOn<{ action?: string }>('ui', payload => {
+        if (payload?.action === 'open-settings') controls.open();
+        else if (payload?.action === 'close-settings') controls.close();
+        else if (payload?.action === 'toggle-settings') controller.toggle();
     });
-    const offShim = bridgeOn<{ action?: string }>('ui', payload => {
-        const action = uiActionToCommand(payload?.action);
-        if (action === 'open') controller.open();
-        else if (action === 'close') controller.close();
-        else controller.toggle();
-    });
-    return () => {
-        offLocal();
-        offShim();
-    };
+    return () => { off(); delete window.__SPW_FOLIA_UI__; delete window.__SPW_FOLIA_SETTINGS_UI__; };
 };
-
-let openState = false;
-export const setSettingsUiOpenState = (open: boolean): void => {
-    if (openState === open) return;
-    openState = open;
-    // protocol §7.5: tell the host so it keeps the system cursor visible while the overlay is
-    // open (the host hides the pointer after an idle period in fullscreen mode). Post straight to
-    // the WebView2 channel: routing this through `__SPW_FOLIA__.emit` would echo it back into the
-    // page's own 'ui' listener and make the panel toggle forever.
-    const post = (window as unknown as {
-        chrome?: { webview?: { postMessage: (message: unknown) => void } };
-    }).chrome?.webview?.postMessage;
-    if (typeof post === 'function') {
-        try {
-            post({ type: 'settingsUI', state: open ? 'open' : 'closed' });
-        } catch (error) {
-            console.warn('[spw-folia] failed to report settings ui state', error);
-        }
-    }
-};
-const isSettingsUiOpen = (): boolean => openState;
-
-/** Posts a raw message to the host (no shim echo). Returns false when the page is not hosted. */
-export const postHostMessage = (message: unknown): boolean => {
-    const post = (window as unknown as {
-        chrome?: { webview?: { postMessage: (message: unknown) => void } };
-    }).chrome?.webview?.postMessage;
-    if (typeof post !== 'function') return false;
-    try {
-        post(message);
-        return true;
-    } catch (error) {
-        console.warn('[spw-folia] failed to post host message', error);
-        return false;
-    }
-};
-
-/**
- * v0.1.9: reports the interactive chrome rectangles (CSS px, page viewport) so the host can keep them
- * clickable while the transparent player window is in mouse-passthrough mode. Everything else falls
- * through to the desktop.
- */
-export interface HitRegion {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
-export const reportHitRegions = (regions: HitRegion[]): void => {
-    const viewportWidth = window.innerWidth || 0;
-    const viewportHeight = window.innerHeight || 0;
-    if (viewportWidth <= 0 || viewportHeight <= 0) return;
-    postHostMessage({
-        type: 'hitbox',
-        vw: viewportWidth,
-        vh: viewportHeight,
-        rects: regions,
-    });
-};
-
-export { DEMO_THEME };

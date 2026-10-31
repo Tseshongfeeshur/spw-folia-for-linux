@@ -1,28 +1,23 @@
 #!/usr/bin/env bash
-# Install the built spw-folia .spmod into the real SPW workshop plugins dir,
-# pre-grant CLASS_TRANSFORM in permissions.json, enable the plugin, and (optionally)
-# restart Salt Player for Windows.
+# Install the built spw-folia .spmod into a Linux Salt Player workshop directory.
 #
-# Usage: bash spw-folia/scripts/install-local.sh [--restart] [--fresh]
-#   --restart  stop Salt Player first (release the plugin files), install, relaunch it
+# Usage: SPW_WORKSHOP_PLUGINS=/path/to/workshop/plugins bash spw-folia/scripts/install-local.sh [--fresh]
 #   --fresh    also delete workshop/data/dev.spw.folia (settings tree); default keeps it
 set -euo pipefail
 
-RESTART=0
 FRESH=0
 for arg in "$@"; do
   case "$arg" in
-    --restart) RESTART=1 ;;
     --fresh) FRESH=1 ;;
     *) echo "ERROR: unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
-ROOT="D:/输出目录/dsh2"
-APPDATA_DIR="C:/Users/24037/AppData/Roaming/Salt Player for Windows"
-PLUGINS="$APPDATA_DIR/workshop/plugins"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PLUGINS="${SPW_WORKSHOP_PLUGINS:-$HOME/.local/share/Salt Player/workshop/plugins}"
+APPDATA_DIR="$(dirname "$PLUGINS")"
 PLUGIN_ID="dev.spw.folia"
-PLUGIN_VERSION="${PLUGIN_VERSION:-0.4.3}"
+PLUGIN_VERSION="${PLUGIN_VERSION:-0.5.0}"
 DEST="$PLUGINS/${PLUGIN_ID}-${PLUGIN_VERSION}-LOCAL-ONLY"
 SPMOD="$ROOT/spw-folia/build/libs/plugin-${PLUGIN_ID}-${PLUGIN_VERSION}.spmod"
 BACKUP="$ROOT/spw-folia/notes/appdata-backup-$(date +%Y%m%d-%H%M%S)"
@@ -30,13 +25,6 @@ BACKUP="$ROOT/spw-folia/notes/appdata-backup-$(date +%Y%m%d-%H%M%S)"
 if [ ! -f "$SPMOD" ]; then
   echo "ERROR: $SPMOD not found (run: gradle plugin)" >&2
   exit 1
-fi
-
-# stop SPW before touching the plugin dir: the JVM holds the loaded jar/classes
-if [ "$RESTART" = 1 ]; then
-  echo "--- stopping SPW ---"
-  taskkill //IM "Salt Player for Windows.exe" //F 2>/dev/null || true
-  sleep 3
 fi
 
 mkdir -p "$BACKUP"
@@ -83,12 +71,12 @@ else
 fi
 
 # enable (plain line list) + pre-grant declared permissions (reviewed+granted)
-# key-bindings backs the SPW shortcut-manager actions (open/close since v0.3.2, transparency v0.4.0).
+# key-bindings backs the public shortcut-manager action used to open or toggle Folia.
 python - "$PLUGINS" "$PLUGIN_ID" <<'PY'
 import json, sys
 from pathlib import Path
 plugins, plugin_id = Path(sys.argv[1]), sys.argv[2]
-DECLARED = ["class-transform", "library-read", "key-bindings"]
+DECLARED = ["library-read", "key-bindings"]
 
 enabled = plugins / "enabled.txt"
 lines = [l.strip() for l in enabled.read_text(encoding="utf-8").splitlines() if l.strip()] if enabled.exists() else []
@@ -114,16 +102,4 @@ ls "$DEST"
 if [ -f "$DEST/classes/META-INF/MANIFEST.MF" ]; then
   echo "--- MANIFEST ---"
   head -25 "$DEST/classes/META-INF/MANIFEST.MF" | tr -d '\r'
-fi
-
-if [ "$RESTART" = 1 ]; then
-  echo "--- launching SPW ---"
-  # Steam build is the primary install path; fall back to the Store alias if missing.
-  SPW_EXE="${SPW_EXE:-D:/app/steam/steamapps/common/Salt Player for Windows/Salt Player for Windows.exe}"
-  if [ -f "$SPW_EXE" ]; then
-    powershell -NoProfile -Command "Start-Process -FilePath '$SPW_EXE'" >/dev/null 2>&1
-  else
-    powershell -NoProfile -Command "Start-Process 'C:\Users\24037\AppData\Local\Microsoft\WindowsApps\Salt Player for Windows.exe'" >/dev/null 2>&1
-  fi
-  echo "launched"
 fi

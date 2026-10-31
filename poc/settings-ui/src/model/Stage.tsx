@@ -8,11 +8,10 @@
  *
  * v0.4.1 真实预览: the sample is no longer a simulation. The stage renders the *exact* config the
  * player page received (`usePlayerConfig`): the song that is playing, its
- * lyrics, the user's theme/background choices and — when enabled — the transparent-playback flag.
+ * lyrics, and the user's theme/background choices.
  * The same-origin `preview.html` iframe runs Folia's real renderer against that config and the
- * parent forwards the host's real clock/audio events into it (docs/live-preview-iframe.md), so the
- * window shows what the player window shows, including the transparent background (drawn as the
- * standard checkerboard here). If the iframe never reports ready (older bundle without preview.html,
+ * parent forwards the host's real clock/audio events into it, so the
+ * window shows what the player window shows. If the iframe never reports ready (older bundle without preview.html,
  * missing child shim) Stage falls back to the captured-frame sample (StylePreview, Ken Burns) — the
  * pause button drives whichever sample is showing. */
 import React, { useState } from 'react';
@@ -66,13 +65,12 @@ const Stage: React.FC<StageProps> = ({ t, visualizerMode, onVisualizerModeChange
     // The player's current config, verbatim: no placeholder song, no guessed theme, no preset
     // background. `null` only until the player page has received its first config.
     const config = usePlayerConfig();
-    const transparent = config?.background?.transparent === true;
 
     return (
         <>
             {/* Big sample: Folia's real renderer in a scaled 1920x1080 iframe, showing the real song. */}
             <div
-                className={`relative min-h-[160px] flex-1 overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--st-line)]${transparent ? ' st-stage-transparent' : ''}`}
+                className="relative min-h-[160px] flex-1 overflow-hidden rounded-xl shadow-[0_0_0_1px_var(--st-line)]"
             >
                 {config != null && (liveFailed
                     ? <StylePreview mode={visualizerMode} paused={paused} />
@@ -84,11 +82,6 @@ const Stage: React.FC<StageProps> = ({ t, visualizerMode, onVisualizerModeChange
                             onError={() => setLiveFailed(true)}
                         />
                     ))}
-                {transparent && (
-                    <span className="absolute bottom-3 left-3 z-40 rounded-full bg-black/45 px-2.5 py-1 text-[11px] leading-none text-white/90">
-                        {t('options.transparentPlayerBackground')}
-                    </span>
-                )}
                 <button
                     type="button"
                     aria-label={t(paused ? 'options.resumePreview' : 'options.pausePreview')}

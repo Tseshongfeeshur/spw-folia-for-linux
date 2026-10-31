@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "dev.spw"
-version = "0.4.6"
+version = "0.5.0"
 
 // A global init.gradle on this machine injects Aliyun mirrors into every project and
 // thereby suppresses settings repos, so declare the repositories this build needs here.
@@ -68,16 +68,15 @@ spmod {
     PluginClass = "dev.spw.folia.FoliaPlugin"
     PluginId = "dev.spw.folia"
     PluginName = "spw-folia"
-    PluginDescription = "Folia fullscreen lyric mode for Salt Player for Windows"
-    PluginVersion = "0.4.6"
+    PluginDescription = "Folia fullscreen lyric mode for Salt Player on Linux Wayland"
+    PluginVersion = "0.5.0"
     PluginProvider = "azkbzxf"
-    // v0.4.0: preference_config.json declares the plugin's 配置 page (SPW 模组管理 → 配置),
-    // which carries the 打开过渡动画 switch read by FoliaPlugin via ConfigManager.
-    PluginHasConfig = true
+    // Linux uses the standard shortcut and the Plasma tray; no private Salt Player config page is
+    // required for opening or controlling the host.
+    PluginHasConfig = false
     PluginOpenSourceUrl = "https://github.com/azkbzxf/spw-folia"
     // v0.3.2: KEY_BINDINGS backs the user-configurable open/close shortcut (SPW 快捷键管理).
     PluginPermissions = listOf(
-        PluginPermission.CLASS_TRANSFORM,
         PluginPermission.LIBRARY_READ,
         PluginPermission.KEY_BINDINGS
     )
@@ -88,23 +87,23 @@ spmod {
 //
 // The .spmod format only carries `classes/` + `lib/`, so the native helper and its web bundle are
 // staged next to the plugin by scripts/install-local.sh:
-//   <plugin dir>/host/spw-folia-host.exe + WebView2 dlls
+//   <plugin dir>/host/spw-folia-host
 //   <plugin dir>/web/index.html + assets + settings/settings-ui.js
 //   <plugin dir>/web/default-settings.json
 // Production packaging is a separate task; this task is the dev-only source of that layout.
 // ---------------------------------------------------------------------------------------------
 val repoRoot: File = rootDir.parentFile
-val devHostDir = File(repoRoot, "poc/webview/host/build")
-// packaging/native is re-staged by the host owner (task-9): prefer it over the dev checkout so
-// local installs test exactly what ships.
+val devHostDir = File(repoRoot, "poc/webview/host-linux/build")
+// packaging/native is re-staged by the release build: prefer it over the dev checkout so local
+// installs test exactly what ships.
 val packagedNativeDir = File(repoRoot, "packaging/native")
 val hostSrcDir = if (packagedNativeDir.isDirectory) packagedNativeDir else devHostDir
-val devWebDir = File(repoRoot, "poc/webview/dist/dist")
+val devWebDir = File(repoRoot, "work/folia/folia-major-main/dist")
 val devSettingsDir = File(repoRoot, "poc/settings-ui/dist")
 val devDefaultSettings = File(repoRoot, "packaging/testdata/default-settings.json")
 
 // Local installs must ship the same web layout as the release package. A raw copy of
-// poc/webview/dist/dist keeps the PWA service worker (its NavigationRoute answers any navigation,
+// A raw upstream dist keeps the PWA service worker (its NavigationRoute answers any navigation,
 // including /preview.html, with index.html) and has no generated preview.html / _host/preview-shim.js,
 // so the settings-UI live preview iframe landed on the OBS page and stayed at 正在连接 Folia.
 // Reuse the production stager instead of duplicating its index.html patching and preview generation.
@@ -117,9 +116,8 @@ val stageDevWeb by tasks.registering(Exec::class) {
     workingDir = repoRoot
     inputs.dir(devWebDir)
     inputs.dir(devSettingsDir)
-    inputs.file(File(repoRoot, "poc/webview/host/PreviewShim.js"))
-    inputs.file(File(repoRoot, "poc/webview/host/Shim.js"))
-    inputs.file(File(repoRoot, "poc/webview/host/Overlay.js"))
+inputs.file(File(repoRoot, "poc/webview/host-linux/scripts/PreviewShim.js"))
+inputs.file(File(repoRoot, "poc/webview/host-linux/scripts/Shim.js"))
     outputs.dir(stageWeb)
     outputs.file(stageReport)
     commandLine(
@@ -137,13 +135,7 @@ val syncDevAssets by tasks.registering(Sync::class) {
     dependsOn(stageDevWeb)
     into(layout.buildDirectory.dir("plugin-root"))
     from(hostSrcDir) {
-        include(
-            "spw-folia-host.exe",
-            "spw-folia-host.exe.config",
-            "WebView2Loader.dll",
-            "Microsoft.Web.WebView2.Core.dll",
-            "Microsoft.Web.WebView2.WinForms.dll"
-        )
+        include("spw-folia-host")
         into("host")
     }
     from(layout.buildDirectory.dir("web-stage/web").get().asFile) { into("web") }

@@ -2,7 +2,7 @@
  * the POC's configuration store (model/settings.ts) instead of Folia's persisted app store. */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, X, LifeBuoy } from 'lucide-react';
+import { Settings, X } from 'lucide-react';
 import StudioWindow from '@/components/shared/StudioWindow';
 import VisPlaygroundSettingsPanel from '@/components/visualizer/window/VisPlaygroundSettingsPanel';
 import type { FontChoice } from '@/components/visualizer/window/FontTiles';
@@ -13,14 +13,11 @@ import {
     selectBackgroundActions,
     selectBackgroundConfig,
     selectTuningSettings,
-    snapshotFromState,
     useSettingsStore,
     type SettingsSection,
-    type StyleMode,
 } from '~/model/settings';
 import Stage from '~/model/Stage';
 import { getStyleEntry } from '~/model/styles';
-import { getStyleTransparencyCompat } from '~/model/transparencyCompat';
 import {
     CONTROL_CARD_BG,
     FONT_SCALE_OPTIONS,
@@ -30,17 +27,11 @@ import {
     RANGE_INPUT_CLASS,
 } from '~/model/theme';
 import {
-    forceEmitSettings,
     getBridge,
     registerSettingsUiController,
-    reportHitRegions,
     setSettingsUiOpenState,
     subscribeSettingsRoundTrip,
-    type HitRegion,
 } from '~/bridge';
-import PlayerBackgroundControl from '~/chrome/PlayerBackgroundControl';
-/* issue #12 增加日志功能: 「出现问题」 environment self-check + pre-filled feedback panel. */
-import ProblemReportPanel from '~/chrome/ProblemReportPanel';
 /* v0.3.0: bottom-centre playback HUD (progress bar; hover expands the control bar). */
 import PlaybackBar from '~/chrome/playback/PlaybackBar';
 import { useConfigPublisher } from '~/useConfigPublisher';
@@ -61,46 +52,11 @@ const App: React.FC<AppProps> = ({ injected }) => {
     const [open, setOpen] = useState(() => !injected);
     /** protocol §7.5 v1 chrome: the gear fades out together with the cursor after 2.5 s idle. */
     const [chromeVisible, setChromeVisible] = useState(true);
-    /** v0.1.7: bottom-right panel holding the player-page transparent-background switch. */
-    const [playerPanelOpen, setPlayerPanelOpen] = useState(false);
     /** v0.4.0: 自定义字体 picker, opened from the 字体 tile / 当前字体 row. */
     const [fontPickerOpen, setFontPickerOpen] = useState(false);
-    /** issue #12: 「出现问题」 environment self-check + feedback panel. */
-    const [problemPanelOpen, setProblemPanelOpen] = useState(false);
     const visualizerMode = state.visualizerMode;
-    /** v0.1.7: with the player background transparent the page is click-through on its keyed pixels,
-     *  so the chrome buttons must stay pinned on screen — otherwise they could never be clicked again. */
-    const chromeAlwaysOn = state.transparentPlayerBackground === true;
-
     useConfigPublisher();
 
-    /* v0.1.7: the transparent player background makes the host window click-through, so the host
-     * turns it back off with a global hotkey (Ctrl+Alt+B) and calls this hook to keep the switch and
-     * the persisted setting in sync.
-     * v0.2.0: the store refuses transparency for styles that cannot render it (monet, lumiere on a
-     * light theme). The host has already keyed the window by the time this runs, so push the
-     * corrected settings back explicitly instead of waiting for a store change that never happens. */
-    useEffect(() => {
-        const target = window as unknown as {
-            __spwFoliaSetTransparent?: (on: boolean) => void;
-        };
-        target.__spwFoliaSetTransparent = on => {
-            const store = useSettingsStore.getState();
-            store.setTransparentPlayerBackground(on);
-            if (on && !useSettingsStore.getState().transparentPlayerBackground) forceEmitSettings();
-        };
-        return () => {
-            delete target.__spwFoliaSetTransparent;
-        };
-    }, []);
-
-    /* v0.1.9: "mouse passthrough" only exists inside a transparent session. Leaving transparency
-     * always releases the mouse, so the next opaque session starts with every control clickable. */
-    useEffect(() => {
-        if (!state.transparentPlayerBackground && state.mousePassthrough) {
-            state.setMousePassthrough(false);
-        }
-    }, [state.transparentPlayerBackground, state.mousePassthrough]);
 
     // Folia's settings window tints all of its text from the global --text-primary the app shell
     // sets from the current theme; the injected bundle owns that variable for the overlay subtree.
@@ -114,17 +70,6 @@ const App: React.FC<AppProps> = ({ injected }) => {
         };
     }, []);
 
-    /* v0.2.0: styles that cannot run under the colour key (see model/transparencyCompat.ts) are
-     * patched through CSS instead — the root flag lets app.css drop the one full-screen plate that a
-     * style has no tuning switch for (currently only `still`'s vignette). */
-    useEffect(() => {
-        const root = document.documentElement;
-        root.dataset.spwTransparent = state.transparentPlayerBackground ? 'true' : 'false';
-        return () => {
-            delete root.dataset.spwTransparent;
-        };
-    }, [state.transparentPlayerBackground]);
-
     useEffect(() => subscribeSettingsRoundTrip(), []);
     useEffect(() => setSettingsUiOpenState(open), [open]);
 
@@ -137,68 +82,6 @@ const App: React.FC<AppProps> = ({ injected }) => {
 
     useEffect(() => registerSettingsUiController({ open: () => setOpen(true), close }), [close]);
 
-    // The settings overlay covers the stage; fold the small player-background panel away with it.
-    useEffect(() => {
-        if (open) setPlayerPanelOpen(false);
-    }, [open]);
-    /* v0.1.9: the host can put the transparent player window into mouse-passthrough mode, where every
-     * click falls through to the desktop except over the chrome. Report those rectangles (CSS px) so the
-     * bottom-right round button and the top-right gear stay clickable at all times. */
-    useEffect(() => {
-        const collect = () => {
-            const rects: HitRegion[] = [];
-            const push = (el: Element | null) => {
-                if (!(el instanceof HTMLElement)) return;
-                const rect = el.getBoundingClientRect();
-                if (rect.width < 2 || rect.height < 2) return;
-                rects.push({ x: rect.left, y: rect.top, w: rect.width, h: rect.height });
-            };
-            push(document.querySelector('[data-spw-chrome="settings"]'));
-            push(document.querySelector('[data-spw-chrome="player-background"]'));
-            push(document.querySelector('[data-spw-chrome="player-background-panel"][data-open="true"]'));
-            /* issue #12: the 「出现问题」 button and its panel must stay clickable too, otherwise the
-             *  very control meant to help a broken setup would be unreachable in passthrough mode. */
-            push(document.querySelector('[data-spw-chrome="problem-report"]'));
-            push(document.querySelector('[data-spw-chrome="problem-report-panel"][data-open="true"]'));
-            push(document.querySelector('[data-spw-settings-overlay="true"]'));
-            reportHitRegions(rects);
-        };
-        collect();
-        const settle = window.setTimeout(collect, 120);
-        window.addEventListener('resize', collect);
-        return () => {
-            window.clearTimeout(settle);
-            window.removeEventListener('resize', collect);
-        };
-    }, [state.transparentPlayerBackground, state.mousePassthrough, playerPanelOpen, problemPanelOpen, open, chromeVisible]);
-
-    // v0.1.7: while the player-background panel is open it owns ESC (panel first, window second) —
-    // window-capture + stopPropagation keeps both our settings listener and the host's Escape out.
-    useEffect(() => {
-        if (!playerPanelOpen) return undefined;
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape') return;
-            event.preventDefault();
-            event.stopPropagation();
-            setPlayerPanelOpen(false);
-        };
-        window.addEventListener('keydown', onKeyDown, true);
-        return () => window.removeEventListener('keydown', onKeyDown, true);
-    }, [playerPanelOpen]);
-
-    /* issue #12: same ESC ownership for the diagnostics panel — it is a modal-ish card over the
-     * player page, so the first Escape closes it and a second one closes the window. */
-    useEffect(() => {
-        if (!problemPanelOpen) return undefined;
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape') return;
-            event.preventDefault();
-            event.stopPropagation();
-            setProblemPanelOpen(false);
-        };
-        window.addEventListener('keydown', onKeyDown, true);
-        return () => window.removeEventListener('keydown', onKeyDown, true);
-    }, [problemPanelOpen]);
 
     useEffect(() => {
         if (!open) return undefined;
@@ -251,14 +134,6 @@ const App: React.FC<AppProps> = ({ injected }) => {
     }, []);
 
     const styleEntry = getStyleEntry(visualizerMode);
-    /** v0.2.0: does the selected style survive the transparent window, and does it need a downgrade? */
-    const styleCompat = getStyleTransparencyCompat(visualizerMode, { isDaylight: state.isDaylightTheme });
-    const styleLabel = t(styleEntry.labelKey) || styleEntry.labelFallback;
-    const compatNote = styleCompat === 'unsupported'
-        ? `当前样式「${styleLabel}」无法在透明窗口下显示（会留下大片键色区域），已自动关闭透明背景。切换其他样式后可重新开启。`
-        : styleCompat === 'tuned' && state.transparentPlayerBackground
-            ? `透明模式下已简化「${styleLabel}」的大面积装饰，关闭透明背景后自动恢复。`
-            : null;
     const styleDraft: StyleDraft = useMemo(() => ({
         tuning: state.styleTunings[visualizerMode],
         change: (patch: Record<string, unknown>) => state.setStyleTuning(visualizerMode, patch),
@@ -324,71 +199,29 @@ const App: React.FC<AppProps> = ({ injected }) => {
 
     return (
         <>
-            {/* v0.1.7: Folia's own player-chrome row, reachable from the player's bottom-right corner. */}
-            <PlayerBackgroundControl
-                visible={chromeAlwaysOn || ((chromeVisible || playerPanelOpen) && !open)}
-                open={playerPanelOpen}
-                onOpenChange={setPlayerPanelOpen}
-                enabled={state.transparentPlayerBackground}
-                onToggle={value => state.setTransparentPlayerBackground(value)}
-                label={t('options.transparentPlayerBackground')}
-                passthrough={state.mousePassthrough}
-                onTogglePassthrough={value => state.setMousePassthrough(value)}
-                passthroughLabel="鼠标穿透（操作桌面）"
-                compat={styleCompat}
-                compatNote={compatNote}
-            />
-            {/* v0.4.0: with the player page opaque the chrome otherwise offers no way out of the
-             *  fullscreen window (ESC / the host hotkey work, but they are not discoverable), so the
-             *  close button mirrors the gear at the top-left. It is only rendered while the player
-             *  page is NOT transparent: with transparency on the chrome stays pinned for
-             *  click-through pages and the transparent session has its own exit affordances. */}
-            {!state.transparentPlayerBackground && (
-                <button
-                    type="button"
-                    className="spw-chrome-btn spw-chrome-btn--exit"
-                    data-spw-chrome="exit"
-                    data-visible={chromeVisible && !open ? 'true' : 'false'}
-                    aria-label={t('options.closePlayer')}
-                    title={t('options.closePlayer')}
-                    onClick={() => getBridge().requestClose?.()}
-                >
-                    <X size={20} strokeWidth={1.75} />
-                </button>
-            )}
+            <button
+                type="button"
+                className="spw-chrome-btn spw-chrome-btn--exit"
+                data-spw-chrome="exit"
+                data-visible={chromeVisible && !open ? 'true' : 'false'}
+                aria-label={t('options.closePlayer')}
+                title={t('options.closePlayer')}
+                onClick={() => getBridge().requestClose?.()}
+            >
+                <X size={20} strokeWidth={1.75} />
+            </button>
             <button
                 type="button"
                 className="spw-chrome-btn"
                 data-spw-chrome="settings"
-                data-visible={chromeAlwaysOn || (chromeVisible && !open) ? 'true' : 'false'}
-                /* v0.1.7: backdrop-filter layers are dropped by the colour-key host window, so the
-                 * chrome falls back to a flat background while the player page is transparent. */
-                data-flat={chromeAlwaysOn ? 'true' : 'false'}
+                data-visible={chromeVisible && !open ? 'true' : 'false'}
                 aria-label={t('options.lyricsStyleSettings')}
                 title={t('options.lyricsStyleSettings')}
                 onClick={() => setOpen(true)}
             >
                 <Settings size={20} strokeWidth={1.75} />
             </button>
-            {/* issue #12: 「出现问题」 entry point next to the gear. The SPW 配置 page carries the same
-             *  action (`preference_config.json` button → FoliaPlugin.onReportProblem), which is the path
-             *  that still works when the player window itself fails to open. */}
-            <button
-                type="button"
-                className="spw-chrome-btn spw-chrome-btn--problem"
-                data-spw-chrome="problem-report"
-                data-visible={chromeAlwaysOn || (chromeVisible && !open) ? 'true' : 'false'}
-                data-flat={chromeAlwaysOn ? 'true' : 'false'}
-                aria-label="出现问题"
-                title="出现问题"
-                onClick={() => setProblemPanelOpen(value => !value)}
-            >
-                <LifeBuoy size={20} strokeWidth={1.75} />
-            </button>
-            <ProblemReportPanel open={problemPanelOpen} onClose={() => setProblemPanelOpen(false)} />
-            {/* v0.3.0: bottom-centre playback HUD (progress bar; hover expands the control bar).
-             *  Hidden while the settings overlay owns the stage; unmounts itself entirely under
-             *  mouse passthrough so no pixels and no hit region remain there. */}
+            {/* Bottom-centre playback HUD; it is hidden while the settings overlay owns the stage. */}
             <PlaybackBar settingsOpen={open} />
             <div
                 className="font-sans"

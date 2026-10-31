@@ -2,7 +2,7 @@
  *
  * Before this module the settings page showed 字体族 / 字重 controls but the derived theme always
  * hard-coded `fontStyle: 'sans'` and never set `fontWeight`, so the visualizer ignored them (they
- * were listed in docs/known-inert-settings.md group C). Folia's renderer resolves the concrete font
+ * are not available as a desktop-native font picker. Folia's renderer resolves the concrete font
  * stack from `Theme.fontStyle` / `Theme.fontWeight` / `Theme.fontFamily` /
  * `Theme.fontFamilyStack` (see work/folia/folia-major-main/src/utils/fontStacks.ts
  * `resolveThemeFontStack`, and components/app/presentation/buildVisualizerTheme.ts, which builds the

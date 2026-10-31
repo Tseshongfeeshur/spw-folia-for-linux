@@ -12,8 +12,6 @@ const DARK_FALLBACK: Theme = {
     animationIntensity: 'normal',
 };
 
-/* v0.3.0: the transparent window follows the *system* colour scheme, so a light system needs a
- * light fallback for covers that fail to load (the cover still decides the hue when it loads). */
 const LIGHT_FALLBACK: Theme = {
     name: 'Daylight Default',
     backgroundColor: '#fafafa',
@@ -106,43 +104,24 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
         image.src = src;
     });
 
-/** v0.3.0: a system-driven palette must keep every text colour on the scheme's own side of the
- *  contrast line, or a dark cover accent would stay unreadable over the desktop. */
-const ensureContrast = (color: Rgb, isLight: boolean): Rgb => {
-    const level = luminance(color);
-    if (isLight) {
-        // light system → dark text: pull below the 0.45 lightness ceiling.
-        return level <= 0.45 ? color : mix(color, { r: 0, g: 0, b: 0 }, (level - 0.45) / Math.max(level, 1e-6));
-    }
-    // dark system → light text: push above the 0.55 lightness floor.
-    return level >= 0.55 ? color : mix(color, { r: 255, g: 255, b: 255 }, (0.55 - level) / Math.max(1 - level, 1e-6));
-};
-
-/** Builds a Folia Theme from a sampled cover. `isLightOverride` (v0.3.0) forces the light/dark side
- *  instead of the cover's own darkness — the transparent window follows the system colour scheme,
- *  while the cover still supplies the hue. */
+/** Builds a Folia theme from a sampled cover. */
 export const themeFromSample = (
     sample: CoverSample | null,
     name?: string,
-    isLightOverride?: boolean,
 ): { theme: Theme; isDaylight: boolean } => {
-    const isLight = isLightOverride ?? (sample ? luminance(sample.average) > 0.55 : false);
+    const isLight = sample ? luminance(sample.average) > 0.55 : false;
     if (!sample) return { theme: isLight ? LIGHT_FALLBACK : DARK_FALLBACK, isDaylight: isLight };
     const { average, accent } = sample;
     const background = isLight ? mix(average, { r: 255, g: 255, b: 255 }, 0.45) : scale(average, 0.28);
     const primary = isLight ? scale(background, 0.16) : mix(average, { r: 255, g: 255, b: 255 }, 0.9);
     const accentColor = saturation(accent) < 0.12 ? mix(primary, accent, 0.4) : mix(accent, { r: 255, g: 255, b: 255 }, 0.15);
     const secondary = mix(primary, background, 0.55);
-    // Only the system-driven side re-checks contrast; the cover-driven palette (the non-transparent
-    // window) must keep its exact v0.1.x colours.
-    const systemDriven = isLightOverride !== undefined;
-    const font = (color: Rgb) => toHex(systemDriven ? ensureContrast(color, isLight) : color);
     const theme: Theme = {
         name: name ?? 'Cover Theme',
         backgroundColor: toHex(background),
-        primaryColor: font(primary),
-        accentColor: font(accentColor),
-        secondaryColor: font(secondary),
+        primaryColor: toHex(primary),
+        accentColor: toHex(accentColor),
+        secondaryColor: toHex(secondary),
         fontStyle: 'sans',
         animationIntensity: 'normal',
     };
@@ -165,15 +144,13 @@ export const sampleCover = async (coverUrl: string): Promise<CoverSample | null>
     }
 };
 
-/** Builds a Folia Theme from a cover image; `isDaylight` says whether the result is a light theme.
- *  `options.isLight` (v0.3.0) overrides the cover's darkness — see `themeFromSample`. */
+/** Builds a Folia theme from a cover image; `isDaylight` reports the cover's lightness. */
 export const deriveThemeFromCover = async (
     coverUrl: string | null | undefined,
     name?: string,
-    options?: { isLight?: boolean },
 ): Promise<{ theme: Theme; isDaylight: boolean }> => {
-    if (!coverUrl) return themeFromSample(null, name, options?.isLight);
-    return themeFromSample(await sampleCover(coverUrl), name, options?.isLight);
+    if (!coverUrl) return themeFromSample(null, name);
+    return themeFromSample(await sampleCover(coverUrl), name);
 };
 
 export const DEFAULT_THEME = DARK_FALLBACK;

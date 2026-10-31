@@ -4,10 +4,8 @@ import { bridgeOn, type BridgeTrackMessage } from '~/bridge';
 /**
  * v0.3.0 · playback HUD data layer (bottom-centre progress bar).
  *
- * Read-only by design: the protocol has no page→host playback-control channel that reaches the
- * plugin (page `action` messages carry only a `name`, and the plugin just logs them — see
- * docs/protocol.md §3.1 and HostForm.cs), so this HUD displays the clock it receives and leaves
- * seeking/transport controls to a future protocol append.
+ * The clock is read-only, while the transport buttons and seek rail emit the protocol's public
+ * `control` messages back through the Linux host bridge.
  *
  * `state` payloads arrive in two shapes:
  *   • injected (host): the RAW plugin message forwarded by Shim.js:240 —
@@ -130,6 +128,11 @@ export const usePlaybackClock = (): PlaybackClockHandle => {
             );
         });
         const offTrack = bridgeOn<Partial<BridgeTrackMessage>>('track', (payload) => {
+            if (!payload) {
+                clockRef.current = null;
+                setMeta(EMPTY_META);
+                return;
+            }
             const next: PlaybackMeta = {
                 title: typeof payload?.title === 'string' ? payload.title : '',
                 artist: typeof payload?.artist === 'string' ? payload.artist : '',
@@ -137,10 +140,10 @@ export const usePlaybackClock = (): PlaybackClockHandle => {
                 durationMs: Math.max(0, payload?.durationMs ?? 0),
             };
             setMeta((prev) => ({
-                title: next.title || prev.title,
-                artist: next.artist || prev.artist,
+                title: next.title,
+                artist: next.artist,
                 playing: prev.playing,
-                durationMs: next.durationMs > 0 ? next.durationMs : prev.durationMs,
+                durationMs: next.durationMs,
             }));
         });
         return () => {

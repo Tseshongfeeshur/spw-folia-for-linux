@@ -22,14 +22,14 @@ const opt = (name, def) => {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 && i + 1 < argv.length ? argv[i + 1] : def;
 };
-const dist = resolve(ROOT, opt('dist', 'poc/webview/dist/dist'));
+const dist = resolve(ROOT, opt('dist', 'work/folia/folia-major-main/dist'));
 const out = resolve(ROOT, opt('out', 'packaging/web'));
 const settingsSrc = resolve(ROOT, 'poc/settings-ui/dist');
 
 if (!existsSync(dist)) throw new Error(`missing dist: ${dist}`);
 if (!existsSync(settingsSrc)) throw new Error(`missing settings-UI dist: ${settingsSrc}`);
 
-// Nothing from the PWA/service-worker layer is shipped (the host is a plain WebView2 page).
+// Nothing from the PWA/service-worker layer is shipped (the Qt host is a plain local page).
 const skipFiles = new Set(['registerSW.js', 'sw.js', 'folia-cover-sw.js', 'manifest.webmanifest']);
 const skipPatterns = [/^workbox-.*\.js$/, /^.*\.bak$/];
 
@@ -76,8 +76,7 @@ html = html.replace(/\s*<link rel="manifest"[^>]*>/g, '');
 html = html.replace(/\s*<script[^>]*src="\.\/registerSW\.js"[^>]*><\/script>/g, '');
 if (html !== before) writeFileSync(indexPath, html);
 
-// Settings UI island: served by the host at https://spw-folia-settings.local/ (bundle subdir
-// settings/ is auto-detected by --bundle). Copy the whole dist (settings-ui.js + styles/ + assets/).
+// Settings UI island: served by the Qt host from the bundle's `settings/` directory.
 const settingsOut = join(out, 'settings');
 function copyTree(src, dst) {
   mkdirSync(dst, { recursive: true });
@@ -171,18 +170,18 @@ const settingsDedupe = { candidates: 0, rewrittenRefs: 0, removed: 0, savedBytes
   }
 }
 
-// Host-injected scripts are embedded in the executable (C# resources) so they cannot go missing at
-// runtime; keep byte-identical copies under web/_host/ for source-offer/audit purposes.
-const hostSrc = resolve(ROOT, 'poc/webview/host');
+// The Qt host injects this script from web/_host/ at document creation. Keep a byte-identical copy
+// in the release payload so the bridge can be audited and loaded offline.
+const hostSrc = resolve(ROOT, 'poc/webview/host-linux/scripts');
 const hostOut = join(out, '_host');
 mkdirSync(hostOut, { recursive: true });
 let hostScripts = 0;
-for (const name of ['Shim.js', 'Overlay.js']) {
+for (const name of ['Shim.js']) {
   const src = join(hostSrc, name);
   if (existsSync(src)) { copyFileSync(src, join(hostOut, name.toLowerCase())); hostScripts++; }
 }
 
-// Live preview (docs/live-preview-iframe.md): the settings overlay embeds preview.html in a
+// Live preview: the settings overlay embeds preview.html in a
 // same-origin iframe. PreviewShim.js is a classic script inside that iframe (NOT injected by the
 // host) that replaces EventSource and synthesizes clock/audio locally.
 let previewShimCopied = false;

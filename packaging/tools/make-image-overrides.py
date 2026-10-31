@@ -2,7 +2,7 @@
 """Regenerate packaging/image-overrides from the pristine Folia web dist.
 
 The packaged artifact ships Folia's illustration/avatar PNGs and the preview
-cover JPGs verbatim from `poc/webview/dist/dist`. Re-encoding them losslessly
+cover JPGs verbatim from `work/folia/folia-major-main/dist`. Re-encoding them losslessly
 does nothing (they are already deflated), but they are flat-shaded anime
 illustrations, so a 256-colour palette PNG keeps the look at ~1/4 of the bytes
 and a q88 progressive JPEG halves the cover photos.
@@ -33,7 +33,7 @@ except ModuleNotFoundError:  # pragma: no cover - documented environment require
     sys.exit("Pillow is required: run this with the DSH bundled Python (Pillow is vendored there)")
 
 ROOT = Path(__file__).resolve().parents[2]
-DIST_ASSETS = ROOT / "poc" / "webview" / "dist" / "dist" / "assets"
+DIST_ASSETS = ROOT / "work" / "folia" / "folia-major-main" / "dist" / "assets"
 OUT = ROOT / "packaging" / "image-overrides"
 
 PNG_COLORS = 256

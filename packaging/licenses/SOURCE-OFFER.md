@@ -1,38 +1,18 @@
-# SOURCE OFFER — spw-folia
+# SOURCE OFFER - spw-folia
 
-This distribution includes software licensed under the **GNU Affero General Public License v3**
-(Folia web assets, and the spw-folia plugin itself). The complete corresponding source is
-available as follows.
+This distribution includes software licensed under AGPL-3.0-or-later, including the Folia web
+assets and the spw-folia plugin. The corresponding source is available in this repository.
 
-## spw-folia (plugin, settings UI, native host helper, staging scripts)
+The Linux native host source is in `poc/webview/host-linux/` and is built with:
 
-Full source code: this repository. The release artifact contains:
+```sh
+cmake -S poc/webview/host-linux -B poc/webview/host-linux/build
+cmake --build poc/webview/host-linux/build
+```
 
-- `lib/spw-folia-host.exe` — native host helper, C# (.NET Framework 4.8). Source: `poc/webview/host/`.
-  Build: `bash poc/webview/host/build.sh` (no SDK required; in-box `csc.exe`).
-- `web/settings/` — settings UI island. Source: `poc/settings-ui/`. Build: `pnpm build`
-  (Vite, React, imports Folia components from the Folia source checkout).
-- Kotlin plugin (spawns the host helper, feeds playback state): `spw-folia/`.
-- Packaged web subset staging: `packaging/tools/stage-web.mjs` plus the dependency report
-  `poc/webview/server/out/offline-report.json`; native assembly: `packaging/build-package.sh`.
+The settings island source is in `poc/settings-ui/`; the Kotlin plugin source is in `spw-folia/`.
+The bundled Folia source is the upstream `folia-major` 0.7.22 release identified in the project
+notice. `packaging/tools/stage-web.mjs` documents the web staging transformation.
 
-## Folia web assets (`web/`)
-
-`web/` is the unmodified production web build of **Folia `folia-major` 0.7.22** (AGPL-3.0),
-extracted from the installed Folia desktop application as distributed to end users. No Folia
-source is modified. `web/index.html` had two non-functional PWA tags removed (service-worker
-registration + manifest link); this one-line change is documented and reproducible.
-
-To reproduce or modify the Folia part, obtain the upstream Folia source:
-https://github.com/chthollyphile/folia-major, tag `v0.7.22`
-(commit `1f6d0f468f5bc81b23a8b40ad7ca96ccd4b1ecbe`). Run its web build and stage the subset with
-`node packaging/tools/stage-web.mjs` (see `docs/release.md`).
-
-Whoever distributes this plugin (including any modified version) must keep this source offer and
-must offer the Corresponding Source to users interacting with it over a network, per AGPL-3.0 §13.
-
-## Written offer
-
-If you received a binary release of this plugin and cannot obtain the source from the locations
-above, contact the distributor of that binary and they will provide the Corresponding Source
-(AGPL-3.0 §6 / §13).
+Anyone distributing a modified version must preserve the corresponding-source offer required by
+AGPL-3.0, including for users interacting with the program over a network.

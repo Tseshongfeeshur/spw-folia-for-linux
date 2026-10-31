@@ -10,11 +10,11 @@ Usage:
       --spmod  spw-folia/build/libs/plugin-dev.spw.folia-0.1.0.spmod \
       --staging packaging \
       --out dist/release \
-      --name spw-folia-0.1.0-windows-x64.spmod
+  --name spw-folia-0.5.0-linux-x86_64.spmod
 
-Staging layout (provided by webview-spike / task-8):
+Staging layout:
   packaging/web/                 Folia dist subset (index.html, assets/, settings/, shim.js, fonts, thumbs)
-  packaging/native/              spw-folia-host.exe (+ WebView2Loader.dll)
+  packaging/native/              x86_64 ELF spw-folia-host
   packaging/licenses/            AGPL-3.0, THIRD_PARTY_NOTICES, FOLIA_UPSTREAM, per-dependency licenses
   packaging/web/settings/settings-ui.js   injected settings UI bundle
   packaging/testdata/            example songs (optional, kept out of release by --link-testdata)
@@ -30,8 +30,8 @@ import zipfile
 from pathlib import Path
 
 REQUIRED_WEB = ["index.html", "settings/settings-ui.js"]
-REQUIRED_NATIVE = ["spw-folia-host.exe"]
-REQUIRED_LICENSES = ["AGPL-3.0.txt", "NOTICE.md", "THIRD-PARTY.md", "SOURCE-OFFER.md", "AUDIO-MIT.txt"]
+REQUIRED_NATIVE = ["spw-folia-host"]
+REQUIRED_LICENSES = ["AGPL-3.0.txt", "NOTICE.md", "THIRD-PARTY.md", "SOURCE-OFFER.md"]
 REQUIRED_SPMOD_MANIFEST_KEYS = ["Plugin-Id", "Plugin-Class", "Plugin-Version", "Plugin-Name"]
 
 
@@ -73,7 +73,7 @@ def main() -> int:
     ap.add_argument("--spmod", required=True)
     ap.add_argument("--staging", default="packaging")
     ap.add_argument("--out", default="dist/release")
-    ap.add_argument("--name", default="spw-folia-0.1.0-windows-x64.spmod")
+    ap.add_argument("--name", default="spw-folia-0.5.0-linux-x86_64.spmod")
     ap.add_argument("--no-testdata", action="store_true", default=True)
     args = ap.parse_args()
 
@@ -98,12 +98,19 @@ def main() -> int:
     for rel in REQUIRED_NATIVE:
         if not (staging / "native" / rel).is_file():
             errors.append(f"missing native/{rel}")
+        elif not os.access(staging / "native" / rel, os.X_OK):
+            errors.append(f"native/{rel} is not executable")
+        else:
+            with open(staging / "native" / rel, "rb") as native:
+                header = native.read(20)
+            if header[:4] != b"\x7fELF" or header[4:5] != b"\x02" or header[18:20] != b"\x3e\x00":
+                errors.append(f"native/{rel} is not an x86_64 ELF executable")
     for rel in REQUIRED_LICENSES:
         if not (staging / "licenses" / rel).is_file():
             errors.append(f"missing licenses/{rel}")
     if errors:
         print("ERROR: staging incomplete:\n  " + "\n  ".join(errors), file=sys.stderr)
-        print("(task-8 webview-spike owns packaging/; run again after it completes)", file=sys.stderr)
+        print("(run packaging/build-package.sh to create the Linux staging tree)", file=sys.stderr)
         return 3
 
     with zipfile.ZipFile(spmod) as zf:
@@ -112,8 +119,6 @@ def main() -> int:
         if missing:
             print(f"ERROR: spmod manifest missing {missing}", file=sys.stderr)
             return 4
-        if manifest.get("Plugin-Permissions") and "class-transform" not in manifest["Plugin-Permissions"]:
-            errors.append("manifest Plugin-Permissions lacks class-transform")
         tmp = Path(tempfile.mkdtemp(prefix="spmod-"))
         zf.extractall(tmp)
 

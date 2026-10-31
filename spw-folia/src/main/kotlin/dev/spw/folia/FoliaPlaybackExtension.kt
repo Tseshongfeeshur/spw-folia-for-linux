@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
  * instance finds it through [get] and asks it for protocol snapshots.
  *
  * Position: the Workshop API only pushes `onPositionUpdated` at ~1 Hz. All callbacks feed
- * [TimelineController] (poc/audio drop-in, measured 2.95 ms mean error on a 1 Hz feed) which
+ * [PlaybackTimeline] keeps the page clock smooth between public playback callbacks.
  * interpolates with a monotonic clock, handles pause/seek/rate/buffering/track changes, and exposes
  * a smooth position for the 100 ms state pump.
  */
@@ -101,13 +101,13 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
         if (cachedLyricsVersion.get() == version) return cachedLyrics.get()
         val lines = lyrics
         if (lines.isEmpty()) {
-            val empty = "[]"
+            val empty = "{\"lines\":[]}"
             cachedLyrics.set(empty)
             cachedLyricsVersion.set(version)
             return empty
         }
         val sb = StringBuilder(lines.size * 96 + 32)
-        sb.append('[')
+        sb.append("{\"lines\":[")
         lines.forEachIndexed { index, line ->
             if (index > 0) sb.append(',')
             sb.append("{\"startMs\":").append(line.startTime)
@@ -124,7 +124,7 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
             }
             sb.append("]}")
         }
-        sb.append(']')
+        sb.append("]}")
         val json = sb.toString()
         cachedLyrics.set(json)
         cachedLyricsVersion.set(version)
@@ -351,6 +351,11 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
         private var instance: FoliaPlaybackExtension? = null
 
         fun get(): FoliaPlaybackExtension? = instance
+
+        fun stopInstance() {
+            instance?.shutdown()
+            instance = null
+        }
     }
 }
 

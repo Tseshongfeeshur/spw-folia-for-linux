@@ -88,7 +88,7 @@ export const validateFontFile = (file: File | null | undefined): string | null =
 
 const hasIndexedDb = (): boolean => typeof indexedDB !== 'undefined' && indexedDB !== null;
 
-/** 打开（首次会建）字体库。没有 IndexedDB（极老的 WebView2 / 隐私模式）时 reject。 */
+/** 打开（首次会建）字体库。没有 IndexedDB（极老的嵌入式浏览器 / 隐私模式）时 reject。 */
 const openFontDb = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
     if (!hasIndexedDb()) {
         reject(new Error('当前环境不支持本地字体存储'));

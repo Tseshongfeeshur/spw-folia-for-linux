@@ -99,7 +99,7 @@ object FoliaSystemFonts {
         for (entry in raw) {
             val name = entry?.trim() ?: continue
             if (name.isEmpty()) continue
-            // Some Windows fonts register the same family twice with different casing.
+            // Desktop font backends can report the same family twice with different casing.
             if (!seen.add(name.lowercase(Locale.ROOT))) continue
             names.add(name)
         }

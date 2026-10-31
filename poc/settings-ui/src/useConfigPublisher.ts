@@ -10,7 +10,6 @@ import {
     type BridgeTrackMessage,
 } from '~/bridge';
 import { snapshotFromState, useSettingsStore } from '~/model/settings';
-import { onSystemSchemeChange, systemPrefersLight } from '~/model/theme';
 import {
     ConfigPublisher,
     type PublisherLyricLine,
@@ -94,8 +93,12 @@ const toPublisherLyrics = (payload: unknown): PublisherLyricLine[] | null => {
 };
 
 const toPublisherTrack = (track: BridgeTrackMessage | null | undefined, lyrics: PublisherLyricLine[] | null): PublisherTrack | null => {
-    if (!track && !lyrics) return null;
-    const source = track ?? DEMO_TRACK;
+    if (!track) {
+        // The dev bridge uses a demo song before any event arrives; an injected host must be able
+        // to represent the real no-track state without resurrecting stale metadata.
+        return bridgeIsInjected() ? null : (lyrics ? { ...DEMO_TRACK, lyrics } : DEMO_TRACK);
+    }
+    const source = track;
     return {
         id: source.id ?? 'unknown',
         title: source.title ?? 'Unknown Track',
@@ -123,7 +126,7 @@ export const getLastPublishedSubtitleTheme = (): Theme | null => lastPublishedSu
  * which made the preview a simulation. The window now renders the config the player page actually
  * received: Shim.js keeps the last `config` event (the page-side publisher's pushConfig and a
  * host-sent config both land there) and re-emits it as a local bridge event, so the stage follows the
- * player instead of guessing — same track, lyrics, theme, background and transparent flag. */
+ * player instead of guessing — same track, lyrics, theme, and background. */
 let playerConfig: ObsBrowserSourceConfig | null = null;
 const configSubscribers = new Set<(config: ObsBrowserSourceConfig) => void>();
 let configSourceBound = false;
@@ -133,7 +136,6 @@ interface PublishHistoryEntry {
     at: number;
     song: string | null;
     lyricLines: number;
-    transparent: boolean;
     updatedAt: number;
 }
 const publishHistory: PublishHistoryEntry[] = [];
@@ -156,7 +158,6 @@ const rememberPlayerConfig = (config: ObsBrowserSourceConfig | null | undefined)
         at: Math.round(performance.now()),
         song: config.song?.name ?? null,
         lyricLines: config.lyrics?.lines?.length ?? 0,
-        transparent: !!config.background?.transparent,
         updatedAt: config.updatedAt,
     });
     if (publishHistory.length > 40) publishHistory.shift();
@@ -217,14 +218,7 @@ export const useConfigPublisher = (): void => {
         /** settings + theme + subtitleTheme, with the persisted 字体/字幕字体 selections applied. */
         const themedInputs = () => {
             const state = useSettingsStore.getState();
-            // v0.3.0: while the player window is transparent the text colours follow the system
-            // colour scheme (dark system → light text), not the cover's darkness. The cover still
-            // supplies the hue; the non-transparent window keeps the cover-driven palette.
-            const derived = themeFromSample(
-                coverSample,
-                track?.title,
-                state.transparentPlayerBackground ? systemPrefersLight() : undefined,
-            );
+            const derived = themeFromSample(coverSample, track?.title);
             const theme = applyThemeFonts(derived.theme, state.appearance);
             const subtitleTheme = state.subtitle.subtitleFontInheritsLyrics
                 ? theme
@@ -254,16 +248,11 @@ export const useConfigPublisher = (): void => {
             playerState: bridge.inputs?.state?.playerState ?? 'IDLE',
         });
 
-        /** Publishes the effective inputs and mirrors the effective lightness into the store, where
-         *  the transparent-window guards (and their auto-close fallback) consume it. */
+        /** Publishes the effective inputs and mirrors the effective lightness into the store. */
         const sync = () => {
             let inputs = themedInputs();
             const store = useSettingsStore.getState();
-            if (store.isDaylightTheme !== inputs.isDaylight) {
-                store.setIsDaylightTheme(inputs.isDaylight);
-                // The mirror can flip transparency back off (lumiere on a light scheme); recompute.
-                inputs = themedInputs();
-            }
+            if (store.isDaylightTheme !== inputs.isDaylight) store.setIsDaylightTheme(inputs.isDaylight);
             publisher.update(inputs);
         };
 
@@ -277,9 +266,6 @@ export const useConfigPublisher = (): void => {
             const sample = await sampleCover(cover);
             if (disposed || token !== themeToken) return;
             coverSample = sample;
-            // v0.2.0: the transparent-window compatibility of `lumiere` depends on the theme being
-            // light or dark (v0.3.0: cover-derived when opaque, system-derived while transparent),
-            // so the store mirrors the effective flag for the panel/switch logic.
             sync();
         };
 
@@ -304,8 +290,6 @@ export const useConfigPublisher = (): void => {
         });
         const offSettings = bridgeOn('settings', () => publisher.invalidate());
         const offConfig = bridgeOn('hello', () => publisher.invalidate());
-        // v0.3.0: a system dark/light flip while the window is transparent re-tints the text.
-        const offScheme = onSystemSchemeChange(() => sync());
 
         void refreshTheme();
         publisher.update({ ...themedInputs(), track, lyricOffsetMs: bridge.inputs?.state?.lyricOffsetMs ?? 0 });
@@ -320,7 +304,6 @@ export const useConfigPublisher = (): void => {
             offLyrics();
             offSettings();
             offConfig();
-            offScheme();
             publisher.dispose();
         };
     }, []);

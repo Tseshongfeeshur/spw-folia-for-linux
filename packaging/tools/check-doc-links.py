@@ -17,10 +17,10 @@ import sys
 
 SKIP_DIRS = {
     ".git", "work", "dist", "tmp-deps", "tmp-repro-thread", "tmp-verify",
-    "tmp-inspect", "node_modules", "build", "backup", "dist-web", "out",
+    "tmp-inspect", "node_modules", "build", "backup", "dist-web", "out", "archive",
 }
 SKIP_PREFIXES = (
-    "poc/hook/backup/", "poc/settings-ui/dist/", "packaging/web/",
+    "poc/settings-ui/dist/", "packaging/web/",
     "packaging/native/", "research/", "tmp-verify/",
 )
 

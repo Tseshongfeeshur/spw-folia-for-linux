@@ -23,8 +23,6 @@ import {
     DEFAULT_TILT_TUNING,
     type SmartBeatSettings,
 } from '@/types';
-import { getStyleTransparencyCompat } from './transparencyCompat';
-import { systemPrefersLight } from './theme';
 /* 0.7.22 花火's tuning defaults live with the style's own module, not in `src/types.ts` (unlike the
  * 14 older styles), so they are imported from there. */
 import { DEFAULT_HANABI_TUNING } from '@/components/visualizer/hanabi/types';
@@ -249,20 +247,7 @@ interface SettingsState {
     setStyleTuning: (mode: StyleMode, patch: Record<string, unknown>) => void;
     resetStyleTuning: (mode: StyleMode) => void;
 
-    /** Folia player-page transparent background: the host window goes colour-key transparent so the
-     *  desktop shows through (v0.1.7). */
-    transparentPlayerBackground: boolean;
-    setTransparentPlayerBackground: (value: boolean) => void;
-
-    /** v0.1.9: while the player background is transparent, let the mouse fall through to the desktop
-     *  (the bottom-right round button and the top-right gear stay clickable). */
-    mousePassthrough: boolean;
-    setMousePassthrough: (value: boolean) => void;
-
-    /** v0.2.0: effective theme lightness, mirrored from `useConfigPublisher` so the transparent
-     *  window guard can tell whether lumiere's light-theme dark field floor applies. v0.3.0: the
-     *  cover decides while the window is opaque, the system colour scheme while it is transparent.
-     *  Not persisted. */
+    /** Effective theme lightness used by the preview publisher. Not persisted. */
     isDaylightTheme: boolean;
     setIsDaylightTheme: (value: boolean) => void;
 
@@ -295,20 +280,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     setActiveSection: activeSection => set({ activeSection }),
 
     visualizerMode: 'sonnet',
-    // v0.2.0: some styles paint a large semi-transparent plate (monet's portrait card, lumiere's
-    // light-theme dark field) that the colour-key window would turn into a pink haze. Selecting one
-    // of those turns the transparent window (and mouse pass-through) back off, so the style is
-    // always usable — see `model/transparencyCompat.ts`.
+    // A hand-selected style disables the per-song random draw.
     setVisualizerMode: (visualizerMode, options) =>
-        set(state => {
-            const compat = getStyleTransparencyCompat(visualizerMode, { isDaylight: state.isDaylightTheme });
-            // 0.7.22: a reroll inside the random pool keeps 随机 on; a style the user picked by hand
-            // while random was on means "play this one", so random switches itself off then.
-            const randomPatch = options?.preserveRandom ? {} : { randomVisualizerModePerSong: false };
-            if (compat !== 'unsupported') return { visualizerMode, ...randomPatch };
-            if (!state.transparentPlayerBackground) return { visualizerMode, ...randomPatch };
-            return { visualizerMode, ...randomPatch, transparentPlayerBackground: false, mousePassthrough: false };
-        }),
+        set(() => ({ visualizerMode, ...(options?.preserveRandom ? {} : { randomVisualizerModePerSong: false }) })),
 
     randomVisualizerModePerSong: false,
     setRandomVisualizerModePerSong: enabled =>
@@ -327,11 +301,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             const pool = normalizeRandomModes(state.randomVisualizerModes);
             const next = pickRandomMode(pool, state.visualizerMode);
             if (next === state.visualizerMode) return {};
-            const compat = getStyleTransparencyCompat(next, { isDaylight: state.isDaylightTheme });
-            const blocked = compat === 'unsupported' && state.transparentPlayerBackground;
-            return blocked
-                ? { visualizerMode: next, transparentPlayerBackground: false, mousePassthrough: false }
-                : { visualizerMode: next };
+            return { visualizerMode: next };
         }),
 
     // Folia's names, forwarded to the implementations above so the reused panels (whose store import
@@ -349,7 +319,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     // The reference window (screenshot 1) has 智能动感模式 on, so the injected window starts the same
     // way. Folia's own stored default is `false` (src/types.ts DEFAULT_SMART_BEAT_SETTINGS); this is a
-    // deliberate presentation choice, documented in docs/settings-ui-impl.md.
+    // deliberate presentation choice for the settings island.
     smartBeat: { enabled: true, effects: {} } as SmartBeatSettings,
     handleSetSmartBeat: patch =>
         set(state => {
@@ -376,38 +346,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             styleTunings: { ...state.styleTunings, [mode]: { ...STYLE_TUNING_DEFAULTS[mode] } },
         })),
 
-    transparentPlayerBackground: false,
-    // v0.2.0: never let the colour key be switched on for a style that cannot render it. The panel
-    // disables the switch already; this also covers the host hotkey (Ctrl+Alt+B) and the dev console.
-    setTransparentPlayerBackground: transparentPlayerBackground =>
-        set(state => {
-            if (!transparentPlayerBackground) return { transparentPlayerBackground, mousePassthrough: false };
-            // v0.3.0: while transparent the effective lightness is the *system* scheme, so the gate
-            // must check that value (lumiere + a light system would paint the dark-field plate).
-            const blocked = getStyleTransparencyCompat(state.visualizerMode, {
-                isDaylight: systemPrefersLight(),
-            }) === 'unsupported';
-            return blocked
-                ? { transparentPlayerBackground: false, mousePassthrough: false }
-                : { transparentPlayerBackground };
-        }),
-
     isDaylightTheme: false,
-    // v0.2.0: `lumiere` only becomes unsupported once the effective theme turns out to be a light
-    // one (cover-derived when opaque, system-derived while transparent since v0.3.0), which the
-    // config publisher knows before the store does. Re-check here so neither a light cover nor a
-    // light system can leave the window transparent with a 94%-opaque dark field behind it.
-    setIsDaylightTheme: isDaylightTheme =>
-        set(state => {
-            if (!state.transparentPlayerBackground) return { isDaylightTheme };
-            if (getStyleTransparencyCompat(state.visualizerMode, { isDaylight: isDaylightTheme }) !== 'unsupported') {
-                return { isDaylightTheme };
-            }
-            return { isDaylightTheme, transparentPlayerBackground: false, mousePassthrough: false };
-        }),
-
-    mousePassthrough: false,
-    setMousePassthrough: mousePassthrough => set({ mousePassthrough }),
+    setIsDaylightTheme: isDaylightTheme => set({ isDaylightTheme }),
 
     backgroundMode: 'latent',
     setBackgroundMode: backgroundMode => set({ backgroundMode }),
@@ -473,8 +413,6 @@ export interface SettingsSnapshot {
     subtitle: SubtitleSettings;
     lyricMotion: number;
     textureResolution: number;
-    transparentPlayerBackground: boolean;
-    mousePassthrough: boolean;
 }
 
 export const snapshotFromState = (state: SettingsState): SettingsSnapshot => ({
@@ -492,8 +430,6 @@ export const snapshotFromState = (state: SettingsState): SettingsSnapshot => ({
     subtitle: state.subtitle,
     lyricMotion: state.lyricMotion,
     textureResolution: state.textureResolution,
-    transparentPlayerBackground: state.transparentPlayerBackground,
-    mousePassthrough: state.mousePassthrough,
 });
 
 /** Hydrates the store from a snapshot the plugin persisted (unknown/missing keys keep defaults). */
@@ -502,12 +438,6 @@ export const applySnapshot = (snapshot: Partial<SettingsSnapshot> | null | undef
     const clean = <T>(value: T | undefined, fallback: T): T => (value === undefined || value === null ? fallback : value);
     useSettingsStore.setState(state => {
         const visualizerMode = clean(snapshot.styleId, state.visualizerMode);
-        // v0.2.0: a persisted snapshot may pair a style that cannot run transparent with the
-        // transparent window on (e.g. the persisted store predates the guard, or the persisted
-        // style was changed elsewhere). Never hydrate that combination.
-        const transparentBlocked =
-            clean(snapshot.transparentPlayerBackground, state.transparentPlayerBackground) &&
-            getStyleTransparencyCompat(visualizerMode, { isDaylight: state.isDaylightTheme }) === 'unsupported';
         return {
             visualizerMode,
             randomVisualizerModePerSong: clean(snapshot.randomVisualizerModePerSong, state.randomVisualizerModePerSong),
@@ -524,10 +454,6 @@ export const applySnapshot = (snapshot: Partial<SettingsSnapshot> | null | undef
             subtitle: { ...state.subtitle, ...clean(snapshot.subtitle, {} as SubtitleSettings) },
             lyricMotion: clean(snapshot.lyricMotion, state.lyricMotion),
             textureResolution: clean(snapshot.textureResolution, state.textureResolution),
-            transparentPlayerBackground: transparentBlocked
-                ? false
-                : clean(snapshot.transparentPlayerBackground, state.transparentPlayerBackground),
-            mousePassthrough: transparentBlocked ? false : clean(snapshot.mousePassthrough, state.mousePassthrough),
         };
     });
 };

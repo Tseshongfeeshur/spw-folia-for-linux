@@ -16,14 +16,14 @@ dist, and before the size report / checksums are produced.
 
 | directory | files | purpose |
 | --- | --- | --- |
-| `assets/` | 27 | every `*.png` / `*.jpg` under `poc/webview/dist/dist/assets` (mascots, avatars, preview covers) |
+| `assets/` | 27 | every `*.png` / `*.jpg` under the upstream `dist/assets` (mascots, avatars, preview covers) |
 | `preview/` | 2 | the two generated preview covers (`placeholder_cover.jpg`, `placeholder_cover-2.jpg`) |
 
 Current totals: 4.54 MB upstream -> 1.39 MB here (saved 3.14 MB, 69 %).
 
 ## Regenerating
 
-Run this only when the upstream Folia web bundle (`poc/webview/dist/dist`) changes:
+Run this only when the upstream Folia web bundle (`work/folia/folia-major-main/dist`) changes:
 
 ```bash
 python packaging/tools/make-image-overrides.py

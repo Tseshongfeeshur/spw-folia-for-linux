@@ -2,12 +2,12 @@
  *
  * The settings overlay is injected into Folia's own OBS surface page, so instead of bundling the
  * renderer into settings-ui.js we load `preview.html` (a copy of the OBS page plus a child-frame
- * shim) and drive it over postMessage: see docs/live-preview-iframe.md for the frozen contract.
+ * shim) and drive it over postMessage using the local live-preview contract.
  *
  * v0.4.1 真实预览: the child no longer runs a synthesized timeline and a placeholder song. The
  * parent forwards the host's real `state`/`audio` events (the same ones the player page consumes)
  * and the exact config the publisher just handed to the host, so the stage is a true mirror of the
- * player — real track, real lyrics, real background and the transparent-playback effect.
+ * player — real track, real lyrics, theme, and background.
  *
  * The iframe is laid out at a fixed 1920x1080 CSS px — Folia's surface only reaches its fullscreen
  * layout when the viewport is >= 1080p — and then scaled to cover the stage box with Folia's own
@@ -180,7 +180,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ paused, config, uploadedFonts
         return () => observer.disconnect();
     }, []);
 
-    // Messages from the child frame: ready / error / stats (docs/live-preview-iframe.md §消息契约).
+    // Messages from the child frame: ready / error / stats.
     useEffect(() => {
         const onMessage = (event: MessageEvent<PreviewMessage>) => {
             if (event.origin !== window.location.origin) return;
