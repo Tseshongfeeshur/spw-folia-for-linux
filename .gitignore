@@ -73,3 +73,7 @@ poc/webview/host/repro/*.dll
 
 # isolated Gradle home used by the local build (Aliyun-mirror workaround)
 spw-folia/.gradle-home/
+
+/dist/
+/spw-workshop-api/
+/work/
