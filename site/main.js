@@ -1,4 +1,4 @@
-/* spw-folia promo site — interaction layer */
+/* spw-folia-for-linux promo site — interaction layer */
 (function () {
   "use strict";
 

@@ -9,7 +9,7 @@ import {
     DEMO_TRACK,
     type BridgeTrackMessage,
 } from '~/bridge';
-import { snapshotFromState, useSettingsStore } from '~/model/settings';
+import { selectActiveTheme, snapshotFromState, useSettingsStore } from '~/model/settings';
 import {
     ConfigPublisher,
     type PublisherLyricLine,
@@ -19,6 +19,7 @@ import {
 import { sampleCover, themeFromSample, type CoverSample } from '~/publisher/deriveTheme';
 import { applyThemeFonts } from '~/publisher/themeFonts';
 import type { Theme } from '@/types';
+import { DAYLIGHT_THEME, PREVIEW_THEME } from '~/model/theme';
 import type { ObsBrowserSourceConfig } from '@/types/obsBrowserSource';
 
 const isLyricLine = (value: unknown): value is { startMs: number; endMs: number; main: string } =>
@@ -219,21 +220,26 @@ export const useConfigPublisher = (): void => {
         const themedInputs = () => {
             const state = useSettingsStore.getState();
             const derived = themeFromSample(coverSample, track?.title);
-            const theme = applyThemeFonts(derived.theme, state.appearance);
+            const selected = state.themeSource === 'default'
+                ? (state.isDaylightTheme === derived.isDaylight
+                    ? { ...derived.theme, animationIntensity: state.animationIntensity }
+                    : (state.isDaylightTheme ? DAYLIGHT_THEME : PREVIEW_THEME))
+                : selectActiveTheme(state);
+            const theme = applyThemeFonts(selected, state.appearance);
             const subtitleTheme = state.subtitle.subtitleFontInheritsLyrics
                 ? theme
-                : applyThemeFonts(derived.theme, {
+                : applyThemeFonts(selected, {
                     fontStyle: state.subtitle.subtitleFontStyle,
                     fontWeight: state.subtitle.subtitleFontWeight,
                     // v0.4.0: one custom face is imported at a time, so a custom subtitle font uses
-                    // the same family/fallback list as the lyric font (upstream keeps a second
-                    // `subtitleFontFamily`; the injected page has no second picker).
-                    customFontFamily: state.appearance.customFontFamily,
-                    customFontStack: state.appearance.customFontStack,
+                    // the same font registry as the lyric font, while retaining the original
+                    // subtitle-specific family and fallback fields used by the workbench.
+                    customFontFamily: state.subtitle.subtitleFontFamily,
+                    customFontStack: state.subtitle.subtitleFontStack,
                 });
             lastPublishedTheme = theme;
             lastPublishedSubtitleTheme = subtitleTheme;
-            return { settings: snapshotFromState(state), theme, subtitleTheme, isDaylight: derived.isDaylight };
+            return { settings: snapshotFromState(state), theme, subtitleTheme, isDaylight: state.isDaylightTheme };
         };
 
         const publisher = new ConfigPublisher({ pushConfig: config => {
@@ -251,8 +257,6 @@ export const useConfigPublisher = (): void => {
         /** Publishes the effective inputs and mirrors the effective lightness into the store. */
         const sync = () => {
             let inputs = themedInputs();
-            const store = useSettingsStore.getState();
-            if (store.isDaylightTheme !== inputs.isDaylight) store.setIsDaylightTheme(inputs.isDaylight);
             publisher.update(inputs);
         };
 
@@ -266,6 +270,14 @@ export const useConfigPublisher = (): void => {
             const sample = await sampleCover(cover);
             if (disposed || token !== themeToken) return;
             coverSample = sample;
+            const derived = themeFromSample(sample, track?.title);
+            const store = useSettingsStore.getState();
+            if (!store.aiTheme) {
+                const aiTheme = derived.isDaylight
+                    ? { light: derived.theme, dark: { ...PREVIEW_THEME, accentColor: derived.theme.accentColor, secondaryColor: derived.theme.secondaryColor } }
+                    : { light: { ...DAYLIGHT_THEME, accentColor: derived.theme.accentColor, secondaryColor: derived.theme.secondaryColor }, dark: derived.theme };
+                store.setAiTheme(aiTheme);
+            }
             sync();
         };
 

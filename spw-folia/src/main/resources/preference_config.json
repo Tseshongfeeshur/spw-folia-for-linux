@@ -1,0 +1,44 @@
+{
+  "configs": [
+    {
+      "title": "使用与诊断",
+      "config": "support.json",
+      "preferences": [
+        {
+          "type": "button",
+          "title": "使用方法",
+          "summary": "点击打开 Folia；也可在 SPW 快捷键设置中使用 Ctrl+Alt+F。首次启动需要 Wayland、KDE Plasma、Qt6 WebEngine 和 PipeWire。",
+          "arrow_type": "none",
+          "on_click": "dev.spw.folia.FoliaPlugin.onShowUsage"
+        },
+        {
+          "type": "button",
+          "title": "检测 Linux 环境",
+          "summary": "检查 Wayland、Plasma、QtWebEngine、PipeWire、宿主程序和 Steam Runtime 启动链路。",
+          "arrow_type": "none",
+          "on_click": "dev.spw.folia.FoliaPlugin.onCheckEnvironment"
+        },
+        {
+          "type": "button",
+          "title": "导出诊断日志",
+          "summary": "将环境信息、宿主启动结果和插件日志导出到 ~/Downloads，并提示文件位置。",
+          "arrow_type": "none",
+          "on_click": "dev.spw.folia.FoliaPlugin.onExportDiagnostics"
+        }
+      ]
+    },
+    {
+      "title": "Folia",
+      "config": "config.json",
+      "preferences": [
+        {
+          "type": "button",
+          "title": "打开 / 显示 Folia",
+          "summary": "启动或显示 Folia 窗口。第一次打开会启动随插件分发的 Qt6 宿主。",
+          "arrow_type": "none",
+          "on_click": "dev.spw.folia.FoliaPlugin.onOpenFolia"
+        }
+      ]
+    }
+  ]
+}

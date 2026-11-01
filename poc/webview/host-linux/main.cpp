@@ -8,7 +8,6 @@
 #include <QJsonObject>
 #include <QMenu>
 #include <QSocketNotifier>
-#include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
 #include <QWebEnginePage>
@@ -20,6 +19,8 @@
 #include <QWebEngineUrlSchemeHandler>
 #include <QWebEngineView>
 #include <QWindow>
+
+#include <KStatusNotifierItem>
 
 #include <cstdio>
 #include <cstring>
@@ -79,13 +80,17 @@ public:
     Host(const QString& bundle, QObject* parent = nullptr)
         : QObject(parent), bundle_(QFileInfo(bundle).canonicalFilePath()), handler_(bundle_, this) {
         QWebEngineProfile::defaultProfile()->installUrlSchemeHandler("folia", &handler_);
-        tray_.setIcon(QIcon::fromTheme("audio-x-generic"));
-        tray_.setToolTip("Folia");
+        tray_.setTitle("Folia");
+        tray_.setCategory(KStatusNotifierItem::ApplicationStatus);
+        tray_.setStatus(KStatusNotifierItem::Active);
+        tray_.setIconByName("audio-x-generic");
+        tray_.setToolTip("audio-x-generic", "Folia", "Linux lyric visualizer");
         auto* menu = new QMenu;
         menu->addAction("Show / Hide", this, &Host::toggleWindow);
         menu->addAction("Quit", qApp, &QApplication::quit);
         tray_.setContextMenu(menu);
-        tray_.show();
+        connect(&tray_, &KStatusNotifierItem::activateRequested, this,
+                [this](bool active, const QPoint&) { if (active) toggleWindow(); });
 
         stdinNotifier_ = new QSocketNotifier(fileno(stdin), QSocketNotifier::Read, this);
         connect(stdinNotifier_, &QSocketNotifier::activated, this, &Host::readStdin);
@@ -112,8 +117,11 @@ public:
             if (newline < 0) break;
             const auto line = stdinBuffer_.left(newline).trimmed();
             stdinBuffer_.remove(0, newline + 1);
-            const auto doc = QJsonDocument::fromJson(line);
+            QJsonParseError error;
+            const auto doc = QJsonDocument::fromJson(line, &error);
             if (doc.isObject()) handle(doc.object());
+            else emitLine({{"t", "log"}, {"level", "error"},
+                           {"msg", QString("stdin JSON parse failed: %1").arg(error.errorString())}});
         }
     }
 
@@ -122,7 +130,12 @@ private:
         const auto type = message.value("t").toString();
         if (type == "hello") { cacheAndDeliver(message); ensureWindow(); return; }
         if (type == "quit") { emitLine({{"t", "closed"}, {"reason", "quit"}}); qApp->quit(); return; }
-        if (type == "action" && message.value("action").toString() == "toggle") { toggleWindow(); return; }
+        if (type == "action") {
+            const auto action = message.value("action").toString();
+            if (action == "toggle") toggleWindow();
+            else if (action == "show") ensureWindow();
+            return;
+        }
         if (type == "state") playing_ = message.value("playing").toBool(false);
         if (type == "state" || type == "lyrics" || type == "track" || type == "settings" || type == "config" || type == "audio")
             cacheAndDeliver(message);
@@ -141,7 +154,7 @@ private:
         QFile shim(bundle_ + "/_host/shim.js");
         if (shim.open(QIODevice::ReadOnly)) {
             QWebEngineScript script;
-            script.setName("spw-folia-linux-shim");
+            script.setName("spw-folia-for-linux-shim");
             script.setInjectionPoint(QWebEngineScript::DocumentCreation);
             script.setWorldId(QWebEngineScript::MainWorld);
             script.setRunsOnSubFrames(false);
@@ -151,7 +164,7 @@ private:
             emitLine({{"t", "log"}, {"msg", "Linux bridge shim missing from web/_host/shim.js"}, {"level", "error"}});
         }
         QWebEngineScript settingsScript;
-        settingsScript.setName("spw-folia-settings-ui-loader");
+        settingsScript.setName("spw-folia-for-linux-settings-ui-loader");
         settingsScript.setInjectionPoint(QWebEngineScript::DocumentCreation);
         settingsScript.setWorldId(QWebEngineScript::MainWorld);
         settingsScript.setRunsOnSubFrames(false);
@@ -164,7 +177,9 @@ private:
         view_->setAttribute(Qt::WA_DeleteOnClose);
         connect(view_, &QObject::destroyed, this, [this] { view_ = nullptr; page_ = nullptr; });
         view_->resize(1280, 720);
-        view_->load(QUrl("folia://app/index.html"));
+        // Folia documents this query as its stable OBS/browser-source surface. It mounts only the
+        // read-only lyric visualizer, so the native window never enters Folia's home/library UI.
+        view_->load(QUrl("folia://app/index.html?obs=1&splash=0"));
         view_->show();
     }
 
@@ -195,8 +210,20 @@ private:
 
     void deliver(const QJsonObject& message) {
         if (!page_) return;
-        const auto json = QString::fromUtf8(QJsonDocument(message).toJson(QJsonDocument::Compact).toBase64());
-        page_->runJavaScript(QString("window.__SPW_FOLIA_HOST_DELIVER__ && window.__SPW_FOLIA_HOST_DELIVER__(JSON.parse(atob('%1')))").arg(json));
+        // QJsonDocument emits UTF-8. atob() returns one Latin-1 code unit per byte, so parsing
+        // atob() directly turns Chinese into mojibake (for example E4 B8 AD -> "ä¸­"). Decode the
+        // Base64 bytes explicitly as UTF-8 before handing the JSON text to the page.
+        const auto base64 = QString::fromLatin1(
+            QJsonDocument(message).toJson(QJsonDocument::Compact).toBase64());
+        const auto script = QString(
+            "(function(){"
+            "var b=atob('%1'),a=new Uint8Array(b.length);"
+            "for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);"
+            "var text=new TextDecoder('utf-8',{fatal:true}).decode(a);"
+            "window.__SPW_FOLIA_HOST_DELIVER__&&window.__SPW_FOLIA_HOST_DELIVER__(JSON.parse(text));"
+            "})()"
+        ).arg(base64);
+        page_->runJavaScript(script);
     }
 
     void fromPage(const QJsonObject& message) {
@@ -212,12 +239,15 @@ private:
     }
 
     static void emitLine(const QJsonObject& object) {
-        std::cout << QJsonDocument(object).toJson(QJsonDocument::Compact).toStdString() << std::endl;
+        const auto bytes = QJsonDocument(object).toJson(QJsonDocument::Compact);
+        std::cout.write(bytes.constData(), bytes.size());
+        std::cout.put('\n');
+        std::cout.flush();
     }
 
     QString bundle_;
     BundleHandler handler_;
-    QSystemTrayIcon tray_;
+    KStatusNotifierItem tray_;
     QSocketNotifier* stdinNotifier_ = nullptr;
     QWebEngineView* view_ = nullptr;
     Page* page_ = nullptr;

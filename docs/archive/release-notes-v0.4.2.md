@@ -14,5 +14,6 @@ poor diagnostics.
 - Added environment checks, richer plugin/helper/page logging and a support/feedback entry.
 - Kept the old Windows playback HUD, private host integration and transparency behavior.
 
-The Linux implementation has no transparent window or private hook. Its current timing and diagnostics
-are defined by [`docs/protocol.md`](../protocol.md) and [`docs/linux-runtime.md`](../linux-runtime.md).
+The Linux implementation has no transparent window or old private Windows hook. Its current menu
+entry uses the exposed Workshop `HookRegistrar`; timing and diagnostics are defined by
+[`docs/protocol.md`](../protocol.md) and [`docs/linux-runtime.md`](../linux-runtime.md).

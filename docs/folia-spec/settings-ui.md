@@ -1,7 +1,7 @@
 # Folia「歌词样式」设置窗口 —— 实现级规范
 
 > 源：`work/folia/folia-major-main`（Folia v0.7.21，GitHub 上游 folia-major-main）+ 已安装应用 `C:\Program Files\Folia`（asar 已解包到 `C:\tmp\asar`，`dist/` 为 v0.7.21 构建产物）。
-> 目标：在 spw-folia 的 WebView2 里 **复用 Folia 自己的 Web 技术栈** 复刻截图 1 的设置页（并在同一 webview 里承载 fullscreen 可视化）。
+> 目标：在 spw-folia-for-linux 的 WebView2 里 **复用 Folia 自己的 Web 技术栈** 复刻截图 1 的设置页（并在同一 webview 里承载 fullscreen 可视化）。
 > 本文所有中文 UI 文案均取自 `src/i18n/locales/zh-CN.ts`（v0.7.21），与截图逐字一致；所有默认值/范围/步进均取自源码，标注行号。
 
 ---
@@ -357,7 +357,7 @@ labels: options.previewVisualizerSettings 歌词动画
 设置页 90% 是 React + kit；**不要用 Vue 重画**，在 Vue 组件里挂一个 React island：
 
 ```ts
-// Web 侧（打包进 spw-folia 的 WebView2 资源）
+// Web 侧（打包进 spw-folia-for-linux 的 WebView2 资源）
 import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './folia-i18n';            // 引入 Folia 的 zh-CN 资源

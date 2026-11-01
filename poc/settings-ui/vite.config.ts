@@ -1,4 +1,4 @@
-// Vite config for the injected spw-folia settings UI.
+// Vite config for the injected spw-folia-for-linux settings UI.
 //
 // The UI is a React island on top of Folia's own settings-kit components: it imports them straight
 // out of the Folia checkout (work/folia/folia-major-main/src) instead of copying them, so the
@@ -54,6 +54,32 @@ const STUB_RULES: Array<[RegExp, string]> = [
 
 const foliaSrcPosix = foliaSrc.replace(/\\/g, '/');
 
+/** The Linux background registry intentionally avoids loading the background renderers, so it
+ * carries the five original player-panel quick-control renderers as a small compatibility copy.
+ * Keep that copy tied to the upstream entry shape: a Folia update must stop the build for review
+ * instead of silently leaving the Linux panel behind. The embedded background has no quick row in
+ * the original entry and is therefore intentionally absent. */
+const FOLIA_BACKGROUND_QUICK_CONTROL_MARKERS = [
+    ['common', "renderQuickControls: ({ config, actions, t }) =>"],
+    ['monet', "renderQuickControls: ({ config, actions, t }) =>"],
+    ['nomand', "renderQuickControls: ({ config, actions, t }) =>"],
+    ['latent', "renderQuickControls: ({ config, actions, t }) =>"],
+    ['sora', "renderQuickControls: ({ config, actions, t }) =>"],
+] as const;
+
+const assertFoliaBackgroundQuickControlSources = () => {
+    for (const [mode, marker] of FOLIA_BACKGROUND_QUICK_CONTROL_MARKERS) {
+        const entryPath = path.join(foliaSrc, 'components/visualizer/backgrounds', mode, 'entry.tsx');
+        const source = fs.readFileSync(entryPath, 'utf8');
+        if (!source.includes(marker)) {
+            throw new Error(
+                `[spw-folia-for-linux] background ${mode} quick-control marker changed in ${entryPath}; `
+                + 'review the original entry and update stubs/backgrounds.tsx before building',
+            );
+        }
+    }
+};
+
 /** Folia serves two generated modules through Vite virtual ids: the zh-TW bundle and the command
  *  palette's pinyin dictionary. 0.7.22's reused pages import both transitively (i18n/config.ts and
  *  the command registry the settings window pulls in), so their generators have to run here too.
@@ -67,7 +93,7 @@ const foliaVirtualModules = async (): Promise<Plugin[]> => {
 };
 
 const foliaStubs = (): Plugin => ({
-    name: 'spw-folia-stubs',
+    name: 'spw-folia-for-linux-stubs',
     enforce: 'pre',
     resolveId(source, importer) {
         // Ids reach this hook with forward slashes on every platform; compare in that form.
@@ -124,7 +150,7 @@ const ensureFoliaDeps = () => {
         fs.symlinkSync(path.join(here, 'node_modules'), link, 'junction');
     } catch (error) {
         throw new Error(
-            `[spw-folia] could not link Folia's dependencies (${link} -> ${path.join(here, 'node_modules')}): ${String(error)}`,
+            `[spw-folia-for-linux] could not link Folia's dependencies (${link} -> ${path.join(here, 'node_modules')}): ${String(error)}`,
         );
     }
 };
@@ -141,19 +167,13 @@ const debugWhoImports = (): Plugin => ({
     },
 });
 
-/** Applies spw-folia's v0.1.3 settings surgery to the reused Folia panels.
+/** Applies marker-checked, Linux-specific surgery to the reused Folia panels.
  *
- *  The injected page cannot provide several things Folia's desktop app assumes, so the controls that
- *  could never take effect are removed at build time instead of being shown as dead switches:
- *
- *  A. beat-driven animation (beat_this / htdemucs WebGPU models are not in the page, and the host
- *     sends no beat events): 智能动感模式 card, 动感效果 card, 和声字幕 group (no harmony data), and
- *     the 罗马音 subtitle content modes (translation is the only lyric sub-text the plugin sends).
- *  B. uploads / custom media (no local file services, no IndexedDB asset store): custom font choice,
- *     背景 URL image mode, and the tempera / monet / cappella image upload controls.
- *
- *  Every removal is marker-checked: if a future Folia update changes a panel the build fails instead
- *  of silently shipping a dead control again. */
+ *  The plugin's compact settings surface passes `linuxOnly`, hiding controls whose data or runtime
+ *  service is unavailable in this port. The standalone lyric-style workbench passes `linuxOnly={false}`
+ *  and therefore retains Folia's original tabs, preview selector, subtitle choices, beat controls,
+ *  and transitions. Every source marker is checked so a Folia update fails the build instead of
+ *  silently changing the Linux surface. */
 interface SettingsSurgery {
     what: string;
     find: string | RegExp;
@@ -166,48 +186,131 @@ interface SettingsSurgeryFile {
     edits: SettingsSurgery[];
 }
 
-const SMART_BEAT_REVEAL = '{/* spw-folia v0.1.3: 智能动感模式开关已移除 — 注入页没有节拍分析模型（A1）。 */}';
-
 const SETTINGS_SURGERY: SettingsSurgeryFile[] = [
+    {
+        suffix: '/components/modal/settings/kit/Tooltip.tsx',
+        edits: [
+            {
+                what: 'injected tooltip portal layer',
+                find: 'className="pointer-events-none fixed z-[210]',
+                replace: 'className="pointer-events-none fixed z-[2147483600]',
+            },
+        ],
+    },
+    {
+        suffix: '/components/shared/Sheet.tsx',
+        edits: [
+            {
+                what: 'injected sheet portal layer',
+                find: /className=\{`fixed inset-0 z-\[200\] flex justify-center p-4 /,
+                replace: 'className={`fixed inset-0 z-[2147483500] flex justify-center p-4 ',
+            },
+        ],
+    },
+    {
+        suffix: '/components/visualizer/window/VisPlayground.tsx',
+        edits: [
+            {
+                what: 'VisPlayground linuxOnly prop',
+                find: '    onClose: () => void;\n}',
+                replace: '    onClose: () => void;\n    linuxOnly?: boolean;\n}',
+            },
+            {
+                what: 'VisPlayground linuxOnly default',
+                find: '    onClose,\n}) => {',
+                replace: '    onClose,\n    linuxOnly = false,\n}) => {',
+            },
+            {
+                what: 'VisPlayground linuxOnly pass',
+                find: '            onSliderPointerDown={tuningDrafts.onSliderPointerDown}\n            onSliderCommit={tuningDrafts.onSliderCommit}\n        />',
+                replace: '            onSliderPointerDown={tuningDrafts.onSliderPointerDown}\n            onSliderCommit={tuningDrafts.onSliderCommit}\n            linuxOnly={linuxOnly}\n        />',
+            },
+        ],
+    },
+    {
+        suffix: '/components/panelTab/controls/AppearanceSection.tsx',
+        edits: [
+            {
+                what: 'transparent background visibility prop',
+                find: '    onToggleTransparentPlayerBackground: (enable: boolean) => void;\n',
+                replace: '    onToggleTransparentPlayerBackground: (enable: boolean) => void;\n    showTransparentPlayerBackground?: boolean;\n    onOpenVisualizerSettings?: () => void;\n    onOpenBackgroundSettings?: () => void;\n',
+            },
+            {
+                what: 'transparent background visibility default',
+                find: '    onToggleTransparentPlayerBackground,\n    onClosePanel,\n',
+                replace: '    onToggleTransparentPlayerBackground,\n    showTransparentPlayerBackground = true,\n    onOpenVisualizerSettings,\n    onOpenBackgroundSettings,\n    onClosePanel,\n',
+            },
+            {
+                what: 'visualizer settings callback',
+                find: "    const openVisualizerSettings = () => {\n        openSettings('options', 'visualizer', 'visualizer');\n        onClosePanel?.();\n    };\n",
+                replace: "    const openVisualizerSettings = () => {\n        if (onOpenVisualizerSettings) onOpenVisualizerSettings();\n        else openSettings('options', 'visualizer', 'visualizer');\n        onClosePanel?.();\n    };\n",
+            },
+            {
+                what: 'background settings callback',
+                find: "    const openBackgroundSettings = () => {\n        openSettings('options', 'visualizer', 'background');\n        onClosePanel?.();\n    };\n",
+                replace: "    const openBackgroundSettings = () => {\n        if (onOpenBackgroundSettings) onOpenBackgroundSettings();\n        else openSettings('options', 'visualizer', 'background');\n        onClosePanel?.();\n    };\n",
+            },
+            {
+                what: 'transparent background row',
+                find: `            {/* Only the switch turns it; the text names it for a screen reader. */}\n            <div className="flex min-h-11 items-center gap-3 py-1.5">\n                <span id={transparentLabelId} className="min-w-0 flex-1 text-sm leading-5">{t('options.transparentPlayerBackground')}</span>\n                <Toggle checked={transparentPlayerBackground} onChange={onToggleTransparentPlayerBackground} labelledBy={transparentLabelId} />\n            </div>\n`,
+                replace: `            {showTransparentPlayerBackground && (\n                /* Only the switch turns it; the text names it for a screen reader. */\n                <div className="flex min-h-11 items-center gap-3 py-1.5">\n                    <span id={transparentLabelId} className="min-w-0 flex-1 text-sm leading-5">{t('options.transparentPlayerBackground')}</span>\n                    <Toggle checked={transparentPlayerBackground} onChange={onToggleTransparentPlayerBackground} labelledBy={transparentLabelId} />\n                </div>\n            )}\n`,
+            },
+        ],
+    },
     {
         suffix: '/components/visualizer/window/VisPlaygroundSettingsPanel.tsx',
         edits: [
+            {
+                what: 'linuxOnly prop',
+                find: '    onSectionChange: (section: VisPlaygroundEditSection) => void;\n',
+                replace: '    onSectionChange: (section: VisPlaygroundEditSection) => void;\n    linuxOnly?: boolean;\n',
+            },
+            {
+                what: 'preview text import',
+                find: /^import \{ type PreviewPlaceholderId \} from \'\.\.\/PreviewPlaceholder\';\r?\n/m,
+                replace: "import { type PreviewPlaceholderId } from '../PreviewPlaceholder';\n",
+            },
+            {
+                what: 'preview text props',
+                find: '    previewPlaceholderId: PreviewPlaceholderId;\n    previewPlaceholderOptions: PresetOption<PreviewPlaceholderId>[];\n    onPreviewPlaceholderChange: (id: PreviewPlaceholderId) => void;\n',
+                replace: '    previewPlaceholderId?: PreviewPlaceholderId;\n    previewPlaceholderOptions?: PresetOption<PreviewPlaceholderId>[];\n    onPreviewPlaceholderChange?: (id: PreviewPlaceholderId) => void;\n',
+            },
             // 0.7.22 moved the card into a fifth 全局 tab; the tab itself goes too (surgery below),
             // so the card's own line is dropped and nothing renders for `global` any more.
             {
                 what: 'SmartBeatSettingsCard element',
                 find: '                    {activeSection === \'global\' && <SmartBeatSettingsCard t={t} />}\n',
-                replace: '',
+                replace: '                    {!linuxOnly && activeSection === \'global\' && <SmartBeatSettingsCard t={t} />}\n',
             },
             {
                 what: 'global tab option',
                 find: "const SECTION_OPTIONS: VisPlaygroundEditSection[] = ['visualizer', 'background', 'common', 'subtitle', 'global'];",
-                replace: "const SECTION_OPTIONS: VisPlaygroundEditSection[] = ['visualizer', 'background', 'common', 'subtitle'];",
+                replace: "const SECTION_OPTIONS: VisPlaygroundEditSection[] = ['visualizer', 'background', 'common', 'subtitle', 'global'];",
             },
             {
                 what: 'SmartBeatSettingsCard import',
                 find: /^import SmartBeatSettingsCard from '[^']*';\r?\n/m,
-                replace: '',
+                replace: "import SmartBeatSettingsCard from '../SmartBeatSettingsCard';\n",
             },
             {
                 what: 'BeatEffectsGroup element',
                 find: '                                {/* Its 智能动感模式 effects, each named, switched and scaled on its own. */}\n                                <BeatEffectsGroup\n                                    t={t}\n                                    effects={visualizerEntry.beatEffects}\n                                    onSliderPointerDown={onSliderPointerDown}\n                                    onSliderCommit={onSliderCommit}\n                                    onOpenSmartBeat={() => onSectionChange(\'global\')}\n                                />\n',
-                replace: '',
+                replace: '                                {!linuxOnly && (\n                                    <>\n                                        {/* Its 智能动感模式 effects, each named, switched and scaled on its own. */}\n                                        <BeatEffectsGroup\n                                            t={t}\n                                            effects={visualizerEntry.beatEffects}\n                                            onSliderPointerDown={onSliderPointerDown}\n                                            onSliderCommit={onSliderCommit}\n                                            onOpenSmartBeat={() => onSectionChange(\'global\')}\n                                        />\n                                    </>\n                                )}\n',
             },
             {
                 what: 'BeatEffectsGroup import',
                 find: /^import BeatEffectsGroup from '[^']*';\r?\n/m,
-                replace: '',
+                replace: "import BeatEffectsGroup from '../BeatEffectsGroup';\n",
             },
             {
-                what: 'background registry URL filter',
+                what: 'background registry complete list',
                 find: '        VISUALIZER_BACKGROUND_REGISTRY.map(entry => ({',
-                replace: "        VISUALIZER_BACKGROUND_REGISTRY.filter(entry => entry.mode !== 'url').map(entry => ({",
+                replace: '        VISUALIZER_BACKGROUND_REGISTRY.map(entry => ({',
             },
             {
                 what: 'romanization subtitle content options',
                 find: "                                            { label: t('options.subtitleContentRomanization'), value: 'romanization' },\n                                            { label: t('options.subtitleContentBoth'), value: 'both' },\n",
-                replace: '',
+                replace: "                                            ...(!linuxOnly ? [\n                                                { label: t('options.subtitleContentRomanization'), value: 'romanization' },\n                                                { label: t('options.subtitleContentBoth'), value: 'both' },\n                                            ] : []),\n",
             },
             // v0.4.0: the 当前字体 row is KEPT. In 0.7.22 it is the only place the panel surfaces the
             // chosen family and a 选择自定义字体 button, and the shell now opens its own picker when
@@ -215,35 +318,27 @@ const SETTINGS_SURGERY: SettingsSurgeryFile[] = [
             {
                 what: 'harmony subtitle group',
                 find: "                            <Group def={HARMONY_GROUP}>\n                                <ToggleRow\n                                    label={t('options.showHarmonySubtitle')}\n                                    note={t('options.showHarmonySubtitleDesc')}\n                                    checked={showHarmonySubtitle}\n                                    disabled={!onToggleShowHarmonySubtitle}\n                                    onChange={next => onToggleShowHarmonySubtitle?.(next)}\n                                />\n                                <Reveal when={showHarmonySubtitle}>\n                                    <ToggleRow\n                                        sub\n                                        label={t('options.harmonySubtitleBackground')}\n                                        note={t('options.harmonySubtitleBackgroundDesc')}\n                                        checked={harmonySubtitleBackground}\n                                        disabled={!onToggleHarmonySubtitleBackground}\n                                        onChange={next => onToggleHarmonySubtitleBackground?.(next)}\n                                    />\n                                </Reveal>\n                            </Group>\n",
-                replace: '',
-            },
-            // v0.4.1 真实预览: the stage always previews the song that is playing, so the 预览文本
-            // choice (placeholder songs) has no meaning any more. Remove the row and the plumbing the
-            // reused panel would otherwise require from App.tsx.
-            {
-                what: 'preview text import',
-                find: /^import \{ type PreviewPlaceholderId \} from '[^']*';\r?\n/m,
-                replace: '',
-            },
-            {
-                what: 'preview text props',
-                find: '    previewPlaceholderId: PreviewPlaceholderId;\n    previewPlaceholderOptions: PresetOption<PreviewPlaceholderId>[];\n    onPreviewPlaceholderChange: (id: PreviewPlaceholderId) => void;\n',
-                replace: '',
+                replace: '{!linuxOnly && (\n                            <Group def={HARMONY_GROUP}>\n                                <ToggleRow\n                                    label={t(\'options.showHarmonySubtitle\')}\n                                    note={t(\'options.showHarmonySubtitleDesc\')}\n                                    checked={showHarmonySubtitle}\n                                    disabled={!onToggleShowHarmonySubtitle}\n                                    onChange={next => onToggleShowHarmonySubtitle?.(next)}\n                                />\n                                <Reveal when={showHarmonySubtitle}>\n                                    <ToggleRow\n                                        sub\n                                        label={t(\'options.harmonySubtitleBackground\')}\n                                        note={t(\'options.harmonySubtitleBackgroundDesc\')}\n                                        checked={harmonySubtitleBackground}\n                                        disabled={!onToggleHarmonySubtitleBackground}\n                                        onChange={next => onToggleHarmonySubtitleBackground?.(next)}\n                                    />\n                                </Reveal>\n                            </Group>\n                        )}\n',
             },
             {
                 what: 'preview text destructure',
-                find: '        previewPlaceholderId,\n        previewPlaceholderOptions,\n        onPreviewPlaceholderChange,\n',
-                replace: '',
+                find: '        onSectionChange,\n',
+                replace: '        onSectionChange,\n        linuxOnly = false,\n',
             },
             {
                 what: 'preview text reset call',
                 find: "                    onPreviewPlaceholderChange('default');\n",
-                replace: '',
+                replace: "                    onPreviewPlaceholderChange?.('default');\n",
             },
             {
                 what: 'preview text row',
                 find: "                            <Row label={t('options.previewText')}>\n                                <Segmented value={previewPlaceholderId} options={previewPlaceholderOptions} onChange={onPreviewPlaceholderChange} />\n                            </Row>\n",
-                replace: '',
+                replace: "                            {!linuxOnly && (\n                                <Row label={t('options.previewText')}>\n                                    <Segmented value={previewPlaceholderId} options={previewPlaceholderOptions} onChange={onPreviewPlaceholderChange} />\n                                </Row>\n                            )}\n",
+            },
+            {
+                what: 'section options selection',
+                find: '                tabs={SECTION_OPTIONS.map(section => ({ id: section, label: t(SECTION_LABEL_KEYS[section]) }))}',
+                replace: "                tabs={(linuxOnly ? SECTION_OPTIONS.filter(section => section !== 'global') : SECTION_OPTIONS).map(section => ({ id: section, label: t(SECTION_LABEL_KEYS[section]) }))}",
             },
         ],
     },
@@ -305,7 +400,7 @@ const SETTINGS_SURGERY: SettingsSurgeryFile[] = [
 ];
 
 const foliaSettingsSurgery = (): Plugin => ({
-    name: 'spw-folia-settings-surgery',
+    name: 'spw-folia-for-linux-settings-surgery',
     enforce: 'pre',
     transform(code, id) {
         const normalized = id.replace(/\\/g, '/');
@@ -315,7 +410,7 @@ const foliaSettingsSurgery = (): Plugin => ({
         for (const edit of group.edits) {
             const matches = typeof edit.find === 'string' ? next.includes(edit.find) : edit.find.test(next);
             if (!matches) {
-                throw new Error(`[spw-folia-surgery] ${group.suffix}: marker not found for "${edit.what}" — Folia source changed, update vite.config.ts`);
+                throw new Error(`[spw-folia-for-linux-surgery] ${group.suffix}: marker not found for "${edit.what}" — Folia source changed, update vite.config.ts`);
             }
             next = next.replace(edit.find, edit.replace);
         }
@@ -324,6 +419,7 @@ const foliaSettingsSurgery = (): Plugin => ({
 });
 
 ensureFoliaDeps();
+assertFoliaBackgroundQuickControlSources();
 
 export default defineConfig(async () => ({
     base: './',

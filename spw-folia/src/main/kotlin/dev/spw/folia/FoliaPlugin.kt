@@ -9,7 +9,9 @@ import com.xuncorp.spw.workshop.api.UnstableSpwWorkshopApi
 import com.xuncorp.spw.workshop.api.WorkshopApi
 import java.awt.event.KeyEvent
 import java.io.File
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /** Linux/Wayland Folia entry point. The visualizer itself lives in the Qt host process. */
 class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
@@ -36,7 +38,12 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
             settingsStore.persist(cleanTree)
         }
         bridge.controlHandler = ::handleControl
-        bridge.onClosed = { reason -> writeLog("Folia host closed: $reason") }
+        bridge.onClosed = { reason ->
+            writeLog("Folia host closed: $reason")
+            if (reason == "process-exit" && instance === this) {
+                toast("Folia 宿主已退出，请运行“检测 Linux 环境”查看原因", WorkshopApi.Ui.ToastType.Error)
+            }
+        }
         registerToggleShortcut()
         writeLog("started Linux Folia plugin for SPW ${pluginContext.spwVersion}")
     }
@@ -63,11 +70,19 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
     }
 
     private fun toggleFoliaWindow() {
+        writeLog("shortcut invoked")
         if (bridge.isRunning()) bridge.sendAction("toggle")
         else if (!bridge.open()) toast("Folia Linux host is unavailable", WorkshopApi.Ui.ToastType.Error)
     }
 
+    private fun showFoliaWindow() {
+        writeLog("open entry invoked")
+        if (bridge.isRunning()) bridge.sendAction("show")
+        else if (!bridge.open()) toast("Folia Linux host is unavailable", WorkshopApi.Ui.ToastType.Error)
+    }
+
     private fun handleControl(action: String, positionMs: Long?) {
+        writeLog("dispatching public playback control: action=$action positionMs=${positionMs ?: "-"}")
         runCatching {
             when (action) {
                 "toggle" -> if (FoliaPlaybackExtension.get()?.snapshot()?.playing == true) WorkshopApi.playback.pause() else WorkshopApi.playback.play()
@@ -76,7 +91,8 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
                 "seek" -> positionMs?.let { WorkshopApi.playback.seekTo(it.coerceAtLeast(0L)) }
                 else -> writeLog("ignored unsupported host control: $action")
             }
-        }.onFailure { writeLog("playback control failed ($action): ${it.message}") }
+        }.onSuccess { writeLog("public playback control returned: action=$action") }
+            .onFailure { writeLog("playback control failed ($action): ${it::class.java.name}: ${it.message}") }
     }
 
     private fun withSystemFonts(tree: String): String = runCatching { FoliaSystemFonts.mergeSystemFontsJson(tree) }.getOrDefault(tree)
@@ -85,7 +101,65 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
         runCatching {
             val file = File(pluginContext.pluginPath, "spw-folia.log")
             file.parentFile?.mkdirs()
-            file.appendText("[${LocalDateTime.now()}] $message\n")
+            file.appendText("[${LocalDateTime.now()}] $message\n", StandardCharsets.UTF_8)
+        }
+    }
+
+    private fun showUsage() {
+        writeLog("usage dialog invoked")
+        toast(
+            "使用方法：点击“打开 / 显示 Folia”，或在快捷键设置中使用 Ctrl+Alt+F。\n" +
+                "首次启动需要 Wayland、KDE Plasma、Qt6 WebEngine 和 PipeWire；关闭窗口后可从托盘或入口再次打开。",
+            WorkshopApi.Ui.ToastType.Success,
+        )
+    }
+
+    private fun checkEnvironment() {
+        writeLog("environment check requested")
+        bridge.diagnose { report, ok ->
+            lastEnvironmentReport = report
+            writeLog("environment check:\n$report")
+            toast(
+                if (ok) "环境检测通过：Folia 宿主可以启动"
+                else "环境检测失败：请导出诊断日志查看详情",
+                if (ok) WorkshopApi.Ui.ToastType.Success else WorkshopApi.Ui.ToastType.Error,
+            )
+        }
+    }
+
+    private fun exportDiagnostics() {
+        writeLog("diagnostic export requested")
+        val stamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
+        val preferred = File(System.getProperty("user.home", "."), "Downloads")
+        val directory = runCatching {
+            if (!preferred.isDirectory) preferred.mkdirs()
+            if (preferred.isDirectory && preferred.canWrite()) preferred else File(pluginContext.pluginPath, "diagnostics")
+        }.getOrElse { File(pluginContext.pluginPath, "diagnostics") }
+        runCatching {
+            directory.mkdirs()
+            val target = File(directory, "spw-folia-diagnostics-$stamp.txt")
+            val logFile = File(pluginContext.pluginPath, "spw-folia.log")
+            val report = buildString {
+                appendLine("spw-folia-for-linux diagnostics")
+                appendLine("generatedAt=${LocalDateTime.now()}")
+                appendLine("pluginPath=${pluginContext.pluginPath}")
+                appendLine("pluginVersion=$PLUGIN_VERSION")
+                appendLine("spwVersion=${pluginContext.spwVersion}")
+                appendLine("channel=${pluginContext.spwChannel}")
+                appendLine()
+                appendLine(bridge.diagnosticSummary())
+                appendLine()
+                appendLine("lastEnvironmentCheck:")
+                appendLine(lastEnvironmentReport ?: "not run")
+                appendLine("pluginLog:")
+                if (logFile.isFile) append(logFile.readText()) else appendLine("missing")
+            }
+            target.writeText(report)
+            writeLog("diagnostics exported: ${target.absolutePath}")
+            toast("诊断日志已导出：${target.absolutePath}", WorkshopApi.Ui.ToastType.Success)
+        }.onFailure {
+            writeLog("diagnostic export failed: ${it::class.java.name}: ${it.message}")
+            toast("诊断日志导出失败：${it.message ?: "未知错误"}", WorkshopApi.Ui.ToastType.Error)
         }
     }
 
@@ -99,8 +173,47 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
         private const val TOGGLE_ACTION = "folia.toggle"
         @Volatile var instance: FoliaPlugin? = null
             private set
+        @Volatile private var lastEnvironmentReport: String? = null
 
         fun logStatic(message: String) { instance?.writeLog(message) }
+
+        /** Target of the SPW plugin configuration page's "打开 / 显示 Folia" button. */
+        @JvmStatic
+        @JvmName("onOpenFolia")
+        fun onOpenFolia() {
+            val target = instance
+            if (target == null) {
+                runCatching {
+                    WorkshopApi.ui.toast("spw-folia-for-linux 插件未启动", WorkshopApi.Ui.ToastType.Warning)
+                }
+                return
+            }
+            target.showFoliaWindow()
+        }
+
+        @JvmStatic
+        @JvmName("onShowUsage")
+        fun onShowUsage() {
+            instance?.showUsage() ?: runCatching {
+                WorkshopApi.ui.toast("请先启用 spw-folia-for-linux 插件", WorkshopApi.Ui.ToastType.Warning)
+            }
+        }
+
+        @JvmStatic
+        @JvmName("onCheckEnvironment")
+        fun onCheckEnvironment() {
+            instance?.checkEnvironment() ?: runCatching {
+                WorkshopApi.ui.toast("请先启用 spw-folia-for-linux 插件", WorkshopApi.Ui.ToastType.Warning)
+            }
+        }
+
+        @JvmStatic
+        @JvmName("onExportDiagnostics")
+        fun onExportDiagnostics() {
+            instance?.exportDiagnostics() ?: runCatching {
+                WorkshopApi.ui.toast("请先启用 spw-folia-for-linux 插件", WorkshopApi.Ui.ToastType.Warning)
+            }
+        }
 
         fun toastStatic(text: String, type: WorkshopApi.Ui.ToastType) {
             val target = instance

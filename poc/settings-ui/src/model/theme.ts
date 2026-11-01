@@ -15,6 +15,16 @@ export const PREVIEW_THEME: Theme = {
     animationIntensity: 'normal',
 };
 
+export const DAYLIGHT_THEME: Theme = {
+    name: 'Daylight Default',
+    backgroundColor: '#fafafa',
+    primaryColor: '#18181b',
+    accentColor: '#18181b',
+    secondaryColor: '#71717a',
+    fontStyle: 'sans',
+    animationIntensity: 'normal',
+};
+
 export const CONTROL_CARD_BG = colorWithAlpha(PREVIEW_THEME.backgroundColor, IS_DAYLIGHT ? 0.42 : 0.52);
 
 /** Slider paint: the kit draws the track/thumb; the sample stage needs the same classes Folia uses. */

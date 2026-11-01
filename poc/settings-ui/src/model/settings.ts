@@ -21,11 +21,21 @@ import {
     DEFAULT_SORA_BACKGROUND_TUNING,
     DEFAULT_TEMPERA_TUNING,
     DEFAULT_TILT_TUNING,
+    type BeatEffectSetting,
+    type DualTheme,
+    type SmartBeatMode,
+    type SubtitleOverlayLayout,
     type SmartBeatSettings,
+    type Theme,
+    type ThemeMode,
+    type UrlBackgroundItem,
 } from '@/types';
 /* 0.7.22 花火's tuning defaults live with the style's own module, not in `src/types.ts` (unlike the
  * 14 older styles), so they are imported from there. */
 import { DEFAULT_HANABI_TUNING } from '@/components/visualizer/hanabi/types';
+import { DEFAULT_MACHI_TUNING } from '@/components/visualizer/machi/types';
+import { DEFAULT_NEBBIA_TUNING } from '@/components/visualizer/nebbia/types';
+import { DAYLIGHT_THEME, PREVIEW_THEME } from './theme';
 
 export type StyleMode =
     | 'sonnet'
@@ -33,6 +43,8 @@ export type StyleMode =
     | 'lumiere'
     /** 0.7.22 花火: order 26, between 绘光 (25) and 古典 (30) on Folia's own shelf. */
     | 'hanabi'
+    | 'machi'
+    | 'nebbia'
     | 'classic'
     | 'cadenza'
     | 'partita'
@@ -57,6 +69,8 @@ export const STYLE_TUNING_DEFAULTS: Record<StyleMode, Record<string, unknown>> =
     tempera: { ...DEFAULT_TEMPERA_TUNING },
     lumiere: { ...DEFAULT_LUMIERE_TUNING },
     hanabi: { ...DEFAULT_HANABI_TUNING },
+    machi: { ...DEFAULT_MACHI_TUNING },
+    nebbia: { ...DEFAULT_NEBBIA_TUNING },
     classic: { ...DEFAULT_CLASSIC_TUNING },
     cadenza: { ...DEFAULT_CADENZA_TUNING },
     partita: { ...DEFAULT_PARTITA_TUNING },
@@ -76,6 +90,8 @@ export const STYLE_TUNING_KEYS: Record<StyleMode, string> = {
     tempera: 'temperaTuning',
     lumiere: 'lumiereTuning',
     hanabi: 'hanabiTuning',
+    machi: 'machiTuning',
+    nebbia: 'nebbiaTuning',
     classic: 'classicTuning',
     cadenza: 'cadenzaTuning',
     partita: 'partitaTuning',
@@ -161,6 +177,7 @@ export interface UploadedFontDescriptor {
 export interface SubtitleSettings {
     hideTranslationSubtitle: boolean;
     subtitleContentMode: 'translation' | 'romanization' | 'both' | 'none';
+    subtitleOverlayLayout: SubtitleOverlayLayout;
     subtitleOverlayOpacity: number;
     subtitleOverlayBackground: boolean;
     subtitleUpcomingLyricsBlur: boolean;
@@ -168,6 +185,8 @@ export interface SubtitleSettings {
     harmonySubtitleBackground: boolean;
     subtitleFontInheritsLyrics: boolean;
     subtitleFontStyle: FontChoice;
+    subtitleFontFamily: string | null;
+    subtitleFontStack: string | null;
     subtitleFontWeight: number | null;
     subtitleFontScale: number;
 }
@@ -185,6 +204,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
 export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
     hideTranslationSubtitle: false,
     subtitleContentMode: 'translation',
+    subtitleOverlayLayout: 'translation',
     subtitleOverlayOpacity: 0.6,
     subtitleOverlayBackground: true,
     subtitleUpcomingLyricsBlur: true,
@@ -192,6 +212,8 @@ export const DEFAULT_SUBTITLE_SETTINGS: SubtitleSettings = {
     harmonySubtitleBackground: true,
     subtitleFontInheritsLyrics: true,
     subtitleFontStyle: 'sans',
+    subtitleFontFamily: null,
+    subtitleFontStack: null,
     subtitleFontWeight: null,
     subtitleFontScale: 1,
 };
@@ -207,9 +229,24 @@ export const DEFAULT_COMMON_BACKGROUND: CommonBackgroundSettings = {
     disableGeometricBackground: false,
 };
 
+const makeThemeVariant = (theme: Theme, name: string): Theme => ({
+    ...theme,
+    name,
+    wordColors: [],
+    lyricsIcons: [],
+    provider: 'Custom',
+});
+
+/** Folia's custom theme editor needs a real editable seed from the first launch. */
+export const DEFAULT_CUSTOM_DUAL_THEME: DualTheme = {
+    light: makeThemeVariant(DAYLIGHT_THEME, 'Custom Light'),
+    dark: makeThemeVariant(PREVIEW_THEME, 'Custom Dark'),
+};
+
 interface BeatEffectPatch {
     on?: boolean;
     strength?: number;
+    parts?: Record<string, number>;
 }
 
 interface SettingsState {
@@ -241,7 +278,7 @@ interface SettingsState {
     setTextureResolution: (value: number) => void;
 
     smartBeat: SmartBeatSettings;
-    handleSetSmartBeat: (patch: { enabled?: boolean; effects?: Record<string, BeatEffectPatch> }) => void;
+    handleSetSmartBeat: (patch: { mode?: SmartBeatMode; effects?: Record<string, BeatEffectPatch> }) => void;
 
     styleTunings: Record<StyleMode, Record<string, unknown>>;
     setStyleTuning: (mode: StyleMode, patch: Record<string, unknown>) => void;
@@ -250,9 +287,25 @@ interface SettingsState {
     /** Effective theme lightness used by the preview publisher. Not persisted. */
     isDaylightTheme: boolean;
     setIsDaylightTheme: (value: boolean) => void;
+    animationIntensity: Theme['animationIntensity'];
+    setAnimationIntensity: (value: Theme['animationIntensity']) => void;
+    setActiveTheme: (theme: Theme) => void;
+    /** Folia's default / AI / custom theme source. */
+    themeSource: ThemeMode;
+    aiTheme: DualTheme | null;
+    customTheme: DualTheme;
+    setThemeSource: (source: ThemeMode) => void;
+    setAiTheme: (theme: DualTheme | null) => void;
+    setCustomTheme: (theme: DualTheme) => void;
 
     backgroundMode: BackgroundMode;
     setBackgroundMode: (mode: BackgroundMode) => void;
+    urlBackgroundItems: UrlBackgroundItem[];
+    urlBackgroundSelectedId: string | null;
+    addUrlBackgroundItem: (item: UrlBackgroundItem) => void;
+    updateUrlBackgroundItem: (id: string, patch: Partial<Omit<UrlBackgroundItem, 'id'>>) => void;
+    deleteUrlBackgroundItem: (id: string) => void;
+    selectUrlBackgroundItem: (id: string | null) => void;
     backgroundTunings: Record<'monet' | 'nomand' | 'latent' | 'sora', Record<string, unknown>>;
     setBackgroundTuning: (mode: 'monet' | 'nomand' | 'latent' | 'sora', patch: Record<string, unknown>) => void;
     resetBackgroundTuning: (mode: 'monet' | 'nomand' | 'latent' | 'sora') => void;
@@ -317,23 +370,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     textureResolution: DEFAULT_TEXTURE_RESOLUTION,
     setTextureResolution: textureResolution => set({ textureResolution }),
 
-    // The reference window (screenshot 1) has 智能动感模式 on, so the injected window starts the same
-    // way. Folia's own stored default is `false` (src/types.ts DEFAULT_SMART_BEAT_SETTINGS); this is a
-    // deliberate presentation choice for the settings island.
-    smartBeat: { enabled: true, effects: {} } as SmartBeatSettings,
+    smartBeat: { ...DEFAULT_SMART_BEAT_SETTINGS, effects: {} },
     handleSetSmartBeat: patch =>
         set(state => {
-            const next: SmartBeatSettings = {
-                enabled: patch.enabled ?? state.smartBeat.enabled,
-                effects: { ...state.smartBeat.effects },
-            };
+            const effects: Record<string, BeatEffectSetting> = { ...state.smartBeat.effects };
             if (patch.effects) {
                 for (const [id, effectPatch] of Object.entries(patch.effects)) {
-                    const current = next.effects[id] ?? { on: true, strength: 1 };
-                    next.effects[id] = { on: effectPatch.on ?? current.on, strength: effectPatch.strength ?? current.strength };
+                    const current = effects[id] ?? { on: true, strength: 1 };
+                    effects[id] = {
+                        on: effectPatch.on ?? current.on,
+                        strength: effectPatch.strength ?? current.strength,
+                        ...(effectPatch.parts || current.parts ? { parts: { ...current.parts, ...effectPatch.parts } } : {}),
+                    };
                 }
             }
-            return { smartBeat: next };
+            return {
+                smartBeat: {
+                    mode: patch.mode ?? state.smartBeat.mode,
+                    effects,
+                },
+            };
         }),
 
     styleTunings: JSON.parse(JSON.stringify(STYLE_TUNING_DEFAULTS)),
@@ -348,9 +404,52 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     isDaylightTheme: false,
     setIsDaylightTheme: isDaylightTheme => set({ isDaylightTheme }),
+    animationIntensity: 'normal',
+    setAnimationIntensity: animationIntensity => set({ animationIntensity }),
+    setActiveTheme: theme => set(state => {
+        if (state.themeSource === 'ai' && state.aiTheme) {
+            const key = state.isDaylightTheme ? 'light' : 'dark';
+            return { aiTheme: { ...state.aiTheme, [key]: theme } };
+        }
+        if (state.themeSource === 'custom') {
+            const key = state.isDaylightTheme ? 'light' : 'dark';
+            return { customTheme: { ...state.customTheme, [key]: theme } };
+        }
+        return { animationIntensity: theme.animationIntensity };
+    }),
+    themeSource: 'default',
+    aiTheme: null,
+    customTheme: { ...DEFAULT_CUSTOM_DUAL_THEME },
+    setThemeSource: themeSource => set(state => ({
+        themeSource: themeSource === 'ai' && !state.aiTheme ? 'default' : themeSource,
+    })),
+    setAiTheme: aiTheme => set(state => ({
+        aiTheme,
+        themeSource: aiTheme ? state.themeSource : state.themeSource === 'ai' ? 'default' : state.themeSource,
+    })),
+    setCustomTheme: customTheme => set({ customTheme, themeSource: 'custom' }),
 
     backgroundMode: 'latent',
     setBackgroundMode: backgroundMode => set({ backgroundMode }),
+    urlBackgroundItems: [],
+    urlBackgroundSelectedId: null,
+    addUrlBackgroundItem: item => set(state => ({
+        urlBackgroundItems: [...state.urlBackgroundItems.filter(candidate => candidate.id !== item.id), item],
+        urlBackgroundSelectedId: item.id,
+    })),
+    updateUrlBackgroundItem: (id, patch) => set(state => ({
+        urlBackgroundItems: state.urlBackgroundItems.map(item => item.id === id ? { ...item, ...patch } : item),
+    })),
+    deleteUrlBackgroundItem: id => set(state => {
+        const urlBackgroundItems = state.urlBackgroundItems.filter(item => item.id !== id);
+        return {
+            urlBackgroundItems,
+            urlBackgroundSelectedId: state.urlBackgroundSelectedId === id
+                ? (urlBackgroundItems[0]?.id ?? null)
+                : state.urlBackgroundSelectedId,
+        };
+    }),
+    selectUrlBackgroundItem: urlBackgroundSelectedId => set({ urlBackgroundSelectedId }),
     backgroundTunings: JSON.parse(JSON.stringify(BACKGROUND_TUNING_DEFAULTS)),
     setBackgroundTuning: (mode, patch) =>
         set(state => ({
@@ -413,6 +512,13 @@ export interface SettingsSnapshot {
     subtitle: SubtitleSettings;
     lyricMotion: number;
     textureResolution: number;
+    animationIntensity: Theme['animationIntensity'];
+    isDaylightTheme: boolean;
+    themeSource: ThemeMode;
+    aiTheme: DualTheme | null;
+    customTheme: DualTheme;
+    urlBackgroundItems: UrlBackgroundItem[];
+    urlBackgroundSelectedId: string | null;
 }
 
 export const snapshotFromState = (state: SettingsState): SettingsSnapshot => ({
@@ -430,7 +536,30 @@ export const snapshotFromState = (state: SettingsState): SettingsSnapshot => ({
     subtitle: state.subtitle,
     lyricMotion: state.lyricMotion,
     textureResolution: state.textureResolution,
+    animationIntensity: state.animationIntensity,
+    isDaylightTheme: state.isDaylightTheme,
+    themeSource: state.themeSource,
+    aiTheme: state.aiTheme,
+    customTheme: state.customTheme,
+    urlBackgroundItems: state.urlBackgroundItems,
+    urlBackgroundSelectedId: state.urlBackgroundSelectedId,
 });
+
+const normalizeSmartBeat = (value: unknown, fallback: SmartBeatSettings): SmartBeatSettings => {
+    if (!value || typeof value !== 'object') return fallback;
+    const candidate = value as { mode?: unknown; enabled?: unknown; effects?: unknown };
+    const mode: SmartBeatMode = candidate.mode === 'cached' || candidate.mode === 'on'
+        ? candidate.mode
+        : candidate.mode === 'off'
+            ? 'off'
+            : candidate.enabled === true
+                ? 'on'
+                : 'off';
+    const effects = candidate.effects && typeof candidate.effects === 'object'
+        ? candidate.effects as Record<string, BeatEffectSetting>
+        : {};
+    return { mode, effects };
+};
 
 /** Hydrates the store from a snapshot the plugin persisted (unknown/missing keys keep defaults). */
 export const applySnapshot = (snapshot: Partial<SettingsSnapshot> | null | undefined): void => {
@@ -444,7 +573,7 @@ export const applySnapshot = (snapshot: Partial<SettingsSnapshot> | null | undef
             randomVisualizerModes: snapshot.randomVisualizerModes === undefined
                 ? state.randomVisualizerModes
                 : normalizeRandomModes(snapshot.randomVisualizerModes),
-            smartBeat: clean(snapshot.smartBeat, state.smartBeat),
+            smartBeat: normalizeSmartBeat(snapshot.smartBeat, state.smartBeat),
             styleTunings: { ...state.styleTunings, ...clean(snapshot.styleTunings, {} as Record<StyleMode, Record<string, unknown>>) },
             backgroundMode: clean(snapshot.backgroundMode, state.backgroundMode),
             backgroundTunings: { ...state.backgroundTunings, ...clean(snapshot.backgroundTunings, {} as Record<'monet' | 'nomand' | 'latent' | 'sora', Record<string, unknown>>) },
@@ -454,8 +583,24 @@ export const applySnapshot = (snapshot: Partial<SettingsSnapshot> | null | undef
             subtitle: { ...state.subtitle, ...clean(snapshot.subtitle, {} as SubtitleSettings) },
             lyricMotion: clean(snapshot.lyricMotion, state.lyricMotion),
             textureResolution: clean(snapshot.textureResolution, state.textureResolution),
+            animationIntensity: clean(snapshot.animationIntensity, state.animationIntensity),
+            isDaylightTheme: clean(snapshot.isDaylightTheme, state.isDaylightTheme),
+            themeSource: clean(snapshot.themeSource, state.themeSource),
+            aiTheme: clean(snapshot.aiTheme, state.aiTheme),
+            customTheme: clean(snapshot.customTheme, state.customTheme),
+            urlBackgroundItems: Array.isArray(snapshot.urlBackgroundItems) ? snapshot.urlBackgroundItems : state.urlBackgroundItems,
+            urlBackgroundSelectedId: clean(snapshot.urlBackgroundSelectedId, state.urlBackgroundSelectedId),
         };
     });
+};
+
+export const selectActiveTheme = (state: Pick<SettingsState, 'themeSource' | 'aiTheme' | 'customTheme' | 'isDaylightTheme' | 'animationIntensity'>): Theme => {
+    if (state.themeSource === 'ai' && state.aiTheme) return state.isDaylightTheme ? state.aiTheme.light : state.aiTheme.dark;
+    if (state.themeSource === 'custom' && state.customTheme) return state.isDaylightTheme ? state.customTheme.light : state.customTheme.dark;
+    return {
+        ...(state.isDaylightTheme ? DAYLIGHT_THEME : PREVIEW_THEME),
+        animationIntensity: state.animationIntensity,
+    };
 };
 
 /** The `VisualizerBackgroundConfig` bag the background tab reads. */
@@ -466,7 +611,7 @@ export const selectBackgroundConfig = (state: SettingsState): Record<string, unk
     nomand: { tuning: state.backgroundTunings.nomand },
     latent: { tuning: state.backgroundTunings.latent },
     sora: { tuning: state.backgroundTunings.sora },
-    url: { items: [], selectedId: null },
+    url: { items: state.urlBackgroundItems, selectedId: state.urlBackgroundSelectedId },
 });
 
 /** The `VisualizerBackgroundActions` bag: writes from the reused background cards. */
@@ -494,5 +639,11 @@ export const selectBackgroundActions = (state: SettingsState): Record<string, un
     sora: {
         onTuningChange: (patch: Record<string, unknown>) => state.setBackgroundTuning('sora', patch),
         onResetTuning: () => state.resetBackgroundTuning('sora'),
+    },
+    url: {
+        onAdd: state.addUrlBackgroundItem,
+        onUpdate: state.updateUrlBackgroundItem,
+        onDelete: state.deleteUrlBackgroundItem,
+        onSelect: state.selectUrlBackgroundItem,
     },
 });

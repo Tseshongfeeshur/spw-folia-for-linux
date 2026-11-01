@@ -89,6 +89,7 @@ export const formatTime = (ms: number): string => {
 };
 
 export interface PlaybackMeta {
+    id: string;
     /** title of the current track; '' while unknown */
     title: string;
     artist: string;
@@ -96,7 +97,7 @@ export interface PlaybackMeta {
     durationMs: number;
 }
 
-const EMPTY_META: PlaybackMeta = { title: '', artist: '', playing: false, durationMs: 0 };
+const EMPTY_META: PlaybackMeta = { id: '', title: '', artist: '', playing: false, durationMs: 0 };
 
 export interface PlaybackClockHandle {
     meta: PlaybackMeta;
@@ -134,12 +135,14 @@ export const usePlaybackClock = (): PlaybackClockHandle => {
                 return;
             }
             const next: PlaybackMeta = {
+                id: typeof payload?.id === 'string' ? payload.id : '',
                 title: typeof payload?.title === 'string' ? payload.title : '',
                 artist: typeof payload?.artist === 'string' ? payload.artist : '',
                 playing: false,
                 durationMs: Math.max(0, payload?.durationMs ?? 0),
             };
             setMeta((prev) => ({
+                id: next.id,
                 title: next.title,
                 artist: next.artist,
                 playing: prev.playing,

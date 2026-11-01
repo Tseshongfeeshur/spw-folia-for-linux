@@ -22,8 +22,8 @@
   var listeners = {};
 
   // Purge any legacy Service Worker / Cache Storage left by older browser builds.
-  // Folia's original web bundle registered a PWA service worker for https://spw-folia.local/; a stale
-  // registration can intercept the /preview.html navigation of the settings live-preview iframe and
+  // Folia's original web bundle registered a PWA service worker; a stale registration can intercept
+  // the /preview.html navigation of the settings live-preview iframe and
   // answer with an old cached index.html (seen as "iframe loads but has no preview shim"). We run from
   // virtual-host files only, so no SW is ever needed: unregister + clear caches for this origin.
   try {
@@ -42,7 +42,6 @@
   var lastEvents = {};           // last SSE payload per event name
   var lastConfig = null;
   var lastClock = null;
-  var lastFps = 0;
   var sources = [];
   var settings = {};
   var inputs = { state: null, lyrics: null, track: null, audio: null, hello: null, ui: null };
@@ -56,7 +55,7 @@
     var list = listeners[type];
     if (!list) return;
     for (var i = 0; i < list.length; i++) {
-      try { list[i](payload); } catch (e) { console.error('[spw-folia] listener error', type, (e && e.stack) ? e.stack : e); }
+      try { list[i](payload); } catch (e) { console.error('[spw-folia-for-linux] listener error', type, (e && e.stack) ? e.stack : e); }
     }
   }
 
@@ -72,7 +71,7 @@
   function callSettingsUi(method) {
     var ui = settingsUi();
     if (!ui || typeof ui[method] !== 'function') return false;
-    try { ui[method](); return true; } catch (e) { console.error('[spw-folia] settings ' + method, e); return false; }
+    try { ui[method](); return true; } catch (e) { console.error('[spw-folia-for-linux] settings ' + method, e); return false; }
   }
   function applyUiAction(action) {
     if (action === 'open-settings') callSettingsUi('open');
@@ -87,21 +86,10 @@
   window.addEventListener('unhandledrejection', function (e) {
     post({ type: 'log', level: 'error', msg: 'rejection: ' + String((e && e.reason) || 'unknown') });
   });
-  // issue #12 增加日志功能: the page's own diagnostics were invisible outside devtools — only
-  // console.error was mirrored, so a warning (Folia logs style/tuning problems through console.warn)
-  // or an informational load step never reached spw-folia-host.stdout.log. Mirror warn and info too,
-  // at their own level, and keep the volume bounded (one line per call, deduped by text, info capped
-  // at 200 distinct messages) so the log stays readable in a feedback report.
-  //
-  // v0.4.2a: PixiJS reports deprecations through `console.groupCollapsed(...)` + `console.warn(stack)`
-  // + `console.groupEnd()`. The first call carries the actual message, the second carries only a stack,
-  // so mirroring `warn` alone produced a log line that was nothing but "at bt (...)" frames. Mirror
-  // groupCollapsed/groupEnd too: they keep the message and its frames together in one line, and the
-  // `group` bookkeeping lets the stack lines be appended to the message they belong to instead of
-  // becoming separate, meaningless entries.
+  // Only mirror console errors by default. Folia and Pixi can emit a large volume of warnings and
+  // informational messages during visualizer rendering; forwarding those through stdout and the
+  // plugin log adds disk and IPC traffic without helping normal playback.
   var consoleSeen = {};
-  var consoleInfoCount = 0;
-  var consoleGroup = [];
   (function () {
     function fmt(args, max) {
       if (!args || args.length === 0) return '';
@@ -126,14 +114,11 @@
       }
       return parts.join(' ').slice(0, max || 4000);
     }
-    function emit(level, name, text, bare) {
+    function emit(level, name, text) {
       var key = level + '|' + text.slice(0, 200);
       if (consoleSeen[key]) return;
       consoleSeen[key] = 1;
-      if (level === 'info') { if (++consoleInfoCount > 200) return; }
-      // `bare` = the text already carries its own context (the group label itself).
-      var prefix = (!bare && consoleGroup.length) ? consoleGroup.join(' / ') + ': ' : '';
-      post({ type: 'log', level: level, msg: 'console.' + name + ': ' + prefix + text });
+      post({ type: 'log', level: level, msg: 'console.' + name + ': ' + text });
     }
     function mirror(level, name) {
       var orig = console[name];
@@ -144,33 +129,7 @@
       };
     }
     mirror('error', 'error');
-    mirror('warn', 'warn');
-    mirror('info', 'info');
-    // Groups: the label is the message, the following console.warn is the stack belonging to it.
-    ['group', 'groupCollapsed'].forEach(function (name) {
-      var orig = console[name];
-      if (!orig) return;
-      console[name] = function () {
-        try {
-          var label = fmt(arguments);
-          if (label) { consoleGroup.push(label); emit('warn', name, label, true); }
-        } catch (e) { }
-        return orig.apply(console, arguments);
-      };
-    });
-    var origEnd = console.groupEnd;
-    if (origEnd) {
-      console.groupEnd = function () {
-        try { consoleGroup.pop(); } catch (e) { }
-        return origEnd.apply(console, arguments);
-      };
-    }
   })();
-
-  // Long-frame reporting: a stalled main thread is the usual shape of a "卡住/掉帧" report, and a
-  // bare fps number does not say when it happened. The rAF meter below counts `stallFrames`
-  // (>100 ms) and remembers `worstFrameMs` per 1 s window; the host turns a non-zero stall count
-  // into a `page-stall` log line (HostForm.WriteFpsSample).
 
   // ---------------------------------------------------------------- SSE emulation
 
@@ -183,7 +142,7 @@
     try { text = JSON.stringify(data); } catch (err) { return; }
     var ev = { type: name, data: text };
     for (var i = 0; i < list.length; i++) {
-      try { list[i].call(src, ev); } catch (err) { console.error('[spw-folia] SSE listener error', name, err); }
+      try { list[i].call(src, ev); } catch (err) { console.error('[spw-folia-for-linux] SSE listener error', name, err); }
     }
   }
 
@@ -393,7 +352,7 @@
       toggleSettings: function () { applyUiAction('toggle-settings'); emitLocal('ui', { action: 'toggle-settings' }); }
     },
     getStats: function () {
-      return { fps: lastFps, longFrames: longFrames, atMs: Math.round(performance.now()), href: location.href };
+      return { atMs: Math.round(performance.now()), href: location.href };
     },
     inputs: inputs,
     lastConfig: function () { return lastConfig; },
@@ -422,55 +381,6 @@
       e.preventDefault();
     }
   }, true);
-
-  // ---------------------------------------------------------------- rAF metrics
-
-  var frames = 0;
-  var windowStart = 0;
-  var lastFrame = 0;
-  var longFrames = 0;
-  // Separate the "just over one vsync" jitter from real stalls, and remember the worst frame of the
-  // window, so a lag report can be matched to a moment instead of only an average fps.
-  var stallFrames = 0;
-  var worstFrameMs = 0;
-  function tick(t) {
-    if (!windowStart) { windowStart = t; lastFrame = t; }
-    frames += 1;
-    if (lastFrame) {
-      var dt = t - lastFrame;
-      if (dt > 25) longFrames += 1;
-      if (dt > 100) stallFrames += 1;
-      if (dt > worstFrameMs) worstFrameMs = dt;
-    }
-    lastFrame = t;
-    var elapsed = t - windowStart;
-    if (elapsed >= 1000) {
-      var fps = frames * 1000.0 / elapsed;
-      lastFps = Math.round(fps * 10) / 10;
-      var heapMB = null;
-      if (performance.memory) heapMB = Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10;
-      post({
-        type: 'fps',
-        fps: lastFps,
-        longFrames: longFrames,
-        stallFrames: stallFrames,
-        worstFrameMs: Math.round(worstFrameMs),
-        heapMB: heapMB,
-        canvases: document.querySelectorAll('canvas').length,
-        dpr: window.devicePixelRatio,
-        w: window.innerWidth,
-        h: window.innerHeight,
-        atMs: Math.round(t)
-      });
-      frames = 0;
-      windowStart = t;
-      longFrames = 0;
-      stallFrames = 0;
-      worstFrameMs = 0;
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
 
   post({ type: 'ready', source: 'shim', protocol: PROTOCOL, href: window.location.href });
 })();

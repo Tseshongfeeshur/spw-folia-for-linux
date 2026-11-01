@@ -26,7 +26,7 @@ internal class FoliaSettingsStore(
 ) {
 
     private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "spw-folia-settings").apply { isDaemon = true }
+        Thread(r, "spw-folia-for-linux-settings").apply { isDaemon = true }
     }
 
     @Volatile private var lastSaved: String? = null

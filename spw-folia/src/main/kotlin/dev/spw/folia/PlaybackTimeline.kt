@@ -3,7 +3,7 @@ package dev.spw.folia
 import java.util.concurrent.atomic.AtomicReference
 
 // -----------------------------------------------------------------------------
-// spw-folia: smooth playback clock for the WebView lyric/visualizer page.
+// spw-folia-for-linux: smooth playback clock for the WebView lyric/visualizer page.
 // Clean-room Kotlin/JVM (pure stdlib, no coroutines, no Android/Workshop API deps).
 // Drop this single file into spw-folia/src/main/kotlin/dev/spw/folia/ and wire the
 // Workshop PlaybackExtensionPoint callbacks through WorkshopPlaybackCallbacks.

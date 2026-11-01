@@ -15,10 +15,13 @@ the private Windows implementation.
 - Qt6 + QtWebEngine host with Plasma StatusNotifier tray entry.
 - PipeWire sink-monitor capture, FFT, spectrum and five-band audio data.
 - Public playback controls only: play/pause, previous, next and seek.
-- Salt Player entry through the public key-binding API; default shortcut `Ctrl+Alt+F`.
-- No `CLASS_TRANSFORM`, menu hook, reflection-based playback controls, Windows binaries or WebView2.
+- Salt Player entry through the configuration-page button and public key-binding API; default shortcut
+  `Ctrl+Alt+F`.
+- SPW 1.19.3 More-menu entry through the public `HookRegistrar`; requires explicit `CLASS_TRANSFORM`
+  permission and is isolated from the playback API.
 - No X11 fallback, transparent window, mouse passthrough, queue, shuffle or repeat controls.
-- System Qt, QtWebEngine, Wayland, Plasma and PipeWire are required and are not bundled.
+- System Qt, QtWebEngine, KDE Frameworks 6 StatusNotifierItem, Wayland, Plasma and PipeWire are
+  required and are not bundled.
 
 The package and host checks are described in [`linux-runtime.md`](linux-runtime.md),
 [`protocol.md`](protocol.md) and [`release.md`](release.md). The current package is a locally verified
@@ -32,7 +35,10 @@ for release archaeology and are not supported installation instructions.
 | Version | Record | Historical focus |
 | --- | --- | --- |
 | v0.1.0 | [`archive/release-notes-v0.1.0.md`](archive/release-notes-v0.1.0.md) | Initial Windows/WebView2/WASAPI release |
-| v0.1.1–v0.1.10 | [`docs/archive/`](archive/) | Windows UI, transparency and input fixes |
+| v0.1.1–v0.1.4 | [`archive/`](archive/) | Windows UI, menu styling and lyric-style fixes |
+| v0.1.5 | [`archive/release-notes-v0.1.5.md`](archive/release-notes-v0.1.5.md) | Unpublished local animated preview build |
+| v0.1.6–v0.1.10 | [`archive/`](archive/) | Windows live preview, transparency and input fixes |
+| v0.1.11 | [`archive/release-notes-v0.1.11.md`](archive/release-notes-v0.1.11.md) | WebView2/stdin thread-safety fix, carried into v0.2.0 |
 | v0.2.0–v0.2.2 | [`docs/archive/`](archive/) | Transparent window and mouse passthrough work |
 | v0.3.0 | [`archive/release-notes-v0.3.0.md`](archive/release-notes-v0.3.0.md) | Windows playback HUD and private controls |
 | v0.3.1 | [`archive/release-notes-v0.3.1.md`](archive/release-notes-v0.3.1.md) | Runtime discovery for the old Windows hook |

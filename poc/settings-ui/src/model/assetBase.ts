@@ -1,8 +1,8 @@
-/* Resolves files shipped next to the built entry (dist/styles/*.jpg). The host injects the entry as
- * https://spw-folia-settings.local/settings-ui.js while the page origin is Folia's
- * https://spw-folia.local, so a root-relative '/styles/x.jpg' would resolve against the wrong
- * origin. The bundle base therefore comes from the injected <script> tag itself; dev.html (plain
- * Vite server, no host) falls back to the dev-origin root, where `public/styles` is served. */
+/* Resolves files shipped next to the built entry (dist/styles/*.jpg). The Linux host injects the
+ * entry through the `folia://app/` scheme, so a root-relative '/styles/x.jpg' would resolve against
+ * the wrong origin. The bundle base therefore comes from the injected <script> tag itself;
+ * dev.html (plain Vite server, no host) falls back to the dev-origin root, where `public/styles`
+ * is served. */
 
 const BUNDLE_ENTRY_PATTERN = /\/settings-ui(?:-[^/]*)?\.js(?:\?|$)/;
 
@@ -28,4 +28,4 @@ export const resolveBundleAsset = (path: string): string => {
 };
 
 /** Static preview frame for one lyric style (built from the real renderer, see doc). */
-export const stylePreviewUrl = (mode: string): string => resolveBundleAsset(`thumbs/${mode}.jpg`);
+export const stylePreviewUrl = (mode: string): string => resolveBundleAsset(`styles/${mode}.jpg`);

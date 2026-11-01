@@ -31,7 +31,7 @@ export const getOnlineMusicProvider = (_providerId: OnlineProviderId): OnlineMus
 export const listOnlineMusicProviders = (): OnlineMusicProvider[] => [];
 
 export const requireOnlineMusicProvider = (providerId: OnlineProviderId): OnlineMusicProvider => {
-    throw new Error(`[spw-folia] no online music provider "${providerId}" in the injected page`);
+    throw new Error(`[spw-folia-for-linux] no online music provider "${providerId}" in the injected page`);
 };
 
 export const providerSupports = (): boolean => false;
@@ -47,5 +47,5 @@ export const keepProviderSongAudio = async (_song: SongResult, _url: string): Pr
 export const canPlayOnlineMusicSong = (_song: SongResult): boolean => false;
 
 export const requireOnlineMusicProviderForSong = (song: SongResult): OnlineMusicProvider => {
-    throw new Error(`[spw-folia] no online music provider for song ${String(song?.id)} in the injected page`);
+    throw new Error(`[spw-folia-for-linux] no online music provider for song ${String(song?.id)} in the injected page`);
 };

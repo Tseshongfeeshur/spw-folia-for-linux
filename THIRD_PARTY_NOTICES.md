@@ -1,6 +1,6 @@
 # Third-party notices
 
-`spw-folia` is an AGPL-3.0-or-later derivative work of Folia. It is an unofficial community
+`spw-folia-for-linux` is an AGPL-3.0-or-later derivative work of Folia. It is an unofficial community
 plugin and is not affiliated with Salt Player or Folia authors.
 
 ## Folia
@@ -20,9 +20,9 @@ dependencies. Salt Player provides them at runtime; they are not redistributed i
 
 ## Linux system dependencies
 
-The native host links to system-provided Qt 6, QtWebEngine, Wayland, Plasma StatusNotifier support,
-and PipeWire `libpipewire-0.3`. These libraries are not bundled. Their licenses are provided by the
-Linux distribution.
+The native host links to system-provided Qt 6, QtWebEngine, KDE Frameworks 6
+`KStatusNotifierItem`/Plasma StatusNotifier support, Wayland, and PipeWire `libpipewire-0.3`. These
+libraries are not bundled. Their licenses are provided by the Linux distribution.
 
 ## Build dependencies
 

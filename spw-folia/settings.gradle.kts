@@ -29,4 +29,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "spw-folia"
+rootProject.name = "spw-folia-for-linux"

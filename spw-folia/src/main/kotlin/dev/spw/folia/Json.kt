@@ -21,7 +21,10 @@ internal object Json {
                 c == '\n' -> sb.append("\\n")
                 c == '\r' -> sb.append("\\r")
                 c == '\t' -> sb.append("\\t")
-                c.code < 0x20 -> sb.append(String.format(Locale.ROOT, "\\u%04x", c.code))
+                c.code < 0x20 || c.code > 0x7e ->
+                    // Keep every plugin-to-host JSON line ASCII-safe. The JSON parser in Qt/Chromium
+                    // reconstructs these UTF-16 code units, including surrogate pairs for emoji.
+                    sb.append(String.format(Locale.ROOT, "\\u%04x", c.code))
                 else -> sb.append(c)
             }
         }

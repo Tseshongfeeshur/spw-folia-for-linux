@@ -197,10 +197,10 @@ export const buildConfig = ({ settings, track, theme, subtitleTheme, isDaylight,
         subtitleFontWeight: subtitle.subtitleFontWeight,
         subtitleFontFamily: subtitle.subtitleFontInheritsLyrics
             ? null
-            : (subtitle.subtitleFontStyle === 'custom' ? appearance.customFontFamily : null),
+            : (subtitle.subtitleFontStyle === 'custom' ? subtitle.subtitleFontFamily : null),
         subtitleFontFallbackFamilies: subtitle.subtitleFontInheritsLyrics
             ? []
-            : (subtitle.subtitleFontStyle === 'custom' ? parseFontFamilyStack(appearance.customFontStack) : []),
+            : (subtitle.subtitleFontStyle === 'custom' ? parseFontFamilyStack(subtitle.subtitleFontStack) : []),
         randomVisualizerModePerSong: settings.randomVisualizerModePerSong,
         randomVisualizerModes: normalizeRandomModes(settings.randomVisualizerModes),
     };
@@ -233,6 +233,7 @@ export const buildConfig = ({ settings, track, theme, subtitleTheme, isDaylight,
         hideTranslationSubtitle: subtitle.hideTranslationSubtitle,
         showSubtitleTranslation: !subtitle.hideTranslationSubtitle && subtitleContentMode !== 'none',
         subtitleContentMode,
+        subtitleOverlayLayout: subtitle.subtitleOverlayLayout,
         seed: seed ?? track?.id ?? CONFIG_SEED_FALLBACK,
         updatedAt: Date.now(),
     };

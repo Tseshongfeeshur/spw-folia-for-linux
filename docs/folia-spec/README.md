@@ -5,7 +5,7 @@
 > [`docs/architecture.md`](../architecture.md)、[`docs/linux-runtime.md`](../linux-runtime.md) 和
 > [`docs/protocol.md`](../protocol.md)。
 
-原始目标：让 spw-folia 插件在 WebView2 里托管 Folia 自己的可视化代码，1:1 复刻 **全屏歌词模式** 与 **歌词样式设置页**（截图 1）。
+原始目标：让 spw-folia-for-linux 插件在 WebView2 里托管 Folia 自己的可视化代码，1:1 复刻 **全屏歌词模式** 与 **歌词样式设置页**（截图 1）。
 所有文档基于 **Folia v0.7.21**：源码 `work/folia/folia-major-main`（AGPL-3.0），安装包 `C:\Program Files\Folia\resources\app.asar`（已解包到 `C:\tmp\asar`，临时目录）。
 
 ---

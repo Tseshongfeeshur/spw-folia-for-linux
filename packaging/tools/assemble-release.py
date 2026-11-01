@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble the release .spmod for spw-folia.
+"""Assemble the release .spmod for spw-folia-for-linux.
 
 Takes the plugin archive produced by the official SPW workshop Gradle plugin
 (classes/ + lib/ + META-INF manifest) and merges the packaging payload
@@ -7,10 +7,10 @@ Takes the plugin archive produced by the official SPW workshop Gradle plugin
 
 Usage:
   python packaging/tools/assemble-release.py \
-      --spmod  spw-folia/build/libs/plugin-dev.spw.folia-0.1.0.spmod \
+      --spmod  spw-folia/build/libs/plugin-dev.spw.folia-0.5.0.spmod \
       --staging packaging \
       --out dist/release \
-  --name spw-folia-0.5.0-linux-x86_64.spmod
+  --name spw-folia-for-linux-0.5.0-linux-x86_64.spmod
 
 Staging layout:
   packaging/web/                 Folia dist subset (index.html, assets/, settings/, shim.js, fonts, thumbs)
@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import sys
 import tempfile
 import zipfile
@@ -58,6 +59,10 @@ def add_tree(zf: zipfile.ZipFile, root: Path, arc_prefix: str, skip=()) -> int:
             continue
         arc = f"{arc_prefix}/{rel}" if arc_prefix else rel
         info = zipfile.ZipInfo(arc, date_time=(2026, 1, 1, 0, 0, 0))
+        # Preserve executable bits for the Linux native helper. Some extractors ignore this
+        # metadata, so the plugin also repairs the bundled helper at runtime.
+        info.create_system = 3
+        info.external_attr = stat.S_IMODE(path.stat().st_mode) << 16
         info.compress_type = zipfile.ZIP_DEFLATED
         with open(path, "rb") as fh:
             data = fh.read()
@@ -73,7 +78,7 @@ def main() -> int:
     ap.add_argument("--spmod", required=True)
     ap.add_argument("--staging", default="packaging")
     ap.add_argument("--out", default="dist/release")
-    ap.add_argument("--name", default="spw-folia-0.5.0-linux-x86_64.spmod")
+    ap.add_argument("--name", default="spw-folia-for-linux-0.5.0-linux-x86_64.spmod")
     ap.add_argument("--no-testdata", action="store_true", default=True)
     args = ap.parse_args()
 
@@ -119,6 +124,9 @@ def main() -> int:
         if missing:
             print(f"ERROR: spmod manifest missing {missing}", file=sys.stderr)
             return 4
+        if manifest.get("Plugin-Has-Config", "").lower() == "true" and "classes/preference_config.json" not in zf.namelist():
+            print("ERROR: manifest enables the configuration page but classes/preference_config.json is missing", file=sys.stderr)
+            return 5
         tmp = Path(tempfile.mkdtemp(prefix="spmod-"))
         zf.extractall(tmp)
 

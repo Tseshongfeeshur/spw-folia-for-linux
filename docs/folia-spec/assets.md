@@ -131,12 +131,12 @@ C:\tmp\asar\
 
 ## 6. 授权（AGPL-3.0）与合规约束
 
-Folia 仓库根 `LICENSE` = **GNU AGPL-3.0**（v0.7.21，Copyright (C) 2007 FSF；项目版权见 `CONTRIBUTORS.md`）。这对 spw-folia 是硬约束：
+Folia 仓库根 `LICENSE` = **GNU AGPL-3.0**（v0.7.21，Copyright (C) 2007 FSF；项目版权见 `CONTRIBUTORS.md`）。这对 spw-folia-for-linux 是硬约束：
 
 1. **托管 / 改编 = 衍生作品**：把 Folia 的 `src/components/visualizer/**`（以及 i18n、styles、settings kit）打进插件再分发，插件整体必须按 **AGPL-3.0** 发布，并提供完整对应源码（含我们对 Folia 代码的修改）。
 2. **网络服务也算分发**：AGPL §13 要求通过网络提供服务的用户也能拿到源码；插件若内置 WebView 加载本地打包的 Folia 代码，条同分发。
 3. **必须保留**：版权声明、LICENSE 文件、文件头注释（如 `// Copyright (c) 2026 chthollyphile` 这类作者头，lumiere/entry.tsx 等文件有）。
-4. **商标/名称**：AGPL 不授商标权；"Folia"名字/图标不应当作自己的品牌，插件名用 `spw-folia`，注明"Folia 可视化代码 © Folia 作者，AGPL-3.0"。
+4. **商标/名称**：AGPL 不授商标权；"Folia"名字/图标不应当作自己的品牌，插件名用 `spw-folia-for-linux`，注明"Folia 可视化代码 © Folia 作者，AGPL-3.0"。
 5. **素材来源**：`research/assets/` 下截图/头像/表情/占位封面都是 Folia 项目素材（AGPL-3.0，随项目分发）；字体 **Noto Serif SC / Noto Sans = SIL OFL 1.1**（随 CDN 分发，自带授权），Inter = SIL OFL 1.1，獅尾四季春加糖SC 为第三方字体（未随包，使用前自行确认授权）。
 6. **给 Lead 的建议**：plugin 仓库根放 `LICENSE`（AGPL-3.0 全文）+ `NOTICE`/`THIRD_PARTY.md` 列 Folia 版本（0.7.21）、来源 URL、修改点；设置页/关于页标注"基于 Folia（AGPL-3.0）"。
 

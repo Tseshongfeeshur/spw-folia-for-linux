@@ -218,7 +218,7 @@ export const registerUploadedFont = async (
             document.fonts.add(face);
             return true;
         } catch (error) {
-            console.warn('[spw-folia] 字体注册失败', family, error);
+            console.warn('[spw-folia-for-linux] 字体注册失败', family, error);
             return false;
         }
     })();
@@ -248,7 +248,7 @@ export const ensureFontRegistered = async (family: string): Promise<boolean> => 
             if (await registerUploadedFont(descriptor, blob)) return true;
         }
     } catch (error) {
-        console.warn('[spw-folia] 无法确认字体是否已注册', name, error);
+        console.warn('[spw-folia-for-linux] 无法确认字体是否已注册', name, error);
     }
     return false;
 };
@@ -278,7 +278,7 @@ const mirrorDescriptors = (descriptors: readonly UploadedFontDescriptor[]): void
         if (before === after) return;
         state.setUploadedFonts([...descriptors]);
     } catch (error) {
-        console.warn('[spw-folia] 同步导入字体列表失败', error);
+        console.warn('[spw-folia-for-linux] 同步导入字体列表失败', error);
     }
 };
 
@@ -371,7 +371,7 @@ export const importFontFile = async (
             registered.set(identity.familyName, Promise.resolve(true));
             return true;
         } catch (error) {
-            console.warn('[spw-folia] 字体解析失败', identity.familyName, error);
+                console.warn('[spw-folia-for-linux] 字体解析失败', identity.familyName, error);
             return false;
         }
     })();
@@ -387,7 +387,7 @@ export const importFontFile = async (
             createdAt: identity.createdAt,
         });
     } catch (error) {
-        console.warn('[spw-folia] 字体落库失败', identity.id, error);
+                console.warn('[spw-folia-for-linux] 字体落库失败', identity.id, error);
         throw new Error('字体已加载，但保存到本地失败，重启后会丢失');
     }
 
@@ -400,7 +400,7 @@ export const importFontFile = async (
     try {
         useSettingsStore.getState().addUploadedFont(descriptor);
     } catch (error) {
-        console.warn('[spw-folia] 字体写入设置树失败', error);
+                console.warn('[spw-folia-for-linux] 字体写入设置树失败', error);
     }
     return { descriptor, familyName: identity.familyName };
 };
@@ -422,7 +422,7 @@ export const deleteUploadedFont = async (id: string): Promise<void> => {
             useSettingsStore.getState().removeUploadedFont(id);
         }
     } catch (error) {
-        console.warn('[spw-folia] 字体从设置树移除失败', id, error);
+                console.warn('[spw-folia-for-linux] 字体从设置树移除失败', id, error);
     }
     if (descriptor) {
         registered.delete(descriptor.family);
@@ -434,13 +434,13 @@ export const deleteUploadedFont = async (id: string): Promise<void> => {
             });
             for (const face of faces) document.fonts.delete(face);
         } catch (error) {
-            console.warn('[spw-folia] 字体注销失败', descriptor.family, error);
+                console.warn('[spw-folia-for-linux] 字体注销失败', descriptor.family, error);
         }
     }
     try {
         await deleteUploadedFontFile(id);
     } catch (error) {
-        console.warn('[spw-folia] 字体字节删除失败', id, error);
+                console.warn('[spw-folia-for-linux] 字体字节删除失败', id, error);
     }
 };
 
@@ -456,7 +456,7 @@ export const restoreUploadedFonts = async (
             if (await registerUploadedFont(descriptor, blob)) ok += 1;
         } catch (error) {
             // 单个字体坏掉不能拖垮开机流程。
-            console.warn('[spw-folia] 恢复字体失败', descriptor.id, error);
+                console.warn('[spw-folia-for-linux] 恢复字体失败', descriptor.id, error);
         }
     }
     return ok;
@@ -491,11 +491,11 @@ export const restoreAllUploadedFonts = async (): Promise<void> => {
                 const blob = record.data ? new Blob([record.data]) : null;
                 if (await registerUploadedFont(descriptor, blob)) recovered.push(descriptor);
             } catch (error) {
-                console.warn('[spw-folia] 补回字体失败', id, error);
+                console.warn('[spw-folia-for-linux] 补回字体失败', id, error);
             }
         }
         if (recovered.length > 0) mirrorDescriptors([...descriptors, ...recovered]);
     } catch (error) {
-        console.warn('[spw-folia] 恢复导入字体失败', error);
+                console.warn('[spw-folia-for-linux] 恢复导入字体失败', error);
     }
 };

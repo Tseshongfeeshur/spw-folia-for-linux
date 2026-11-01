@@ -10,5 +10,6 @@ The package includes:
 - `licenses/THIRD-PARTY.md`
 - `licenses/SOURCE-OFFER.md`
 
-The Qt 6, QtWebEngine, Wayland, Plasma, and PipeWire libraries are system dependencies and are not
-bundled. The Salt Player Workshop API and PF4J are compile-only or host-provided dependencies.
+The Qt 6, QtWebEngine, KDE Frameworks 6 `KStatusNotifierItem`, Wayland, Plasma, and PipeWire
+libraries are system dependencies and are not bundled. The Salt Player Workshop API and PF4J are
+compile-only or host-provided dependencies.

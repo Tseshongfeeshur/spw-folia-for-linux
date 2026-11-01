@@ -58,7 +58,7 @@ PipeWireAudio::~PipeWireAudio() {
 
 bool PipeWireAudio::start() {
     pw_init(nullptr, nullptr);
-    loop_ = pw_thread_loop_new("spw-folia-audio", nullptr);
+    loop_ = pw_thread_loop_new("spw-folia-for-linux-audio", nullptr);
     if (!loop_) return false;
     context_ = pw_context_new(pw_thread_loop_get_loop(loop_), nullptr, 0);
     if (!context_ || pw_thread_loop_start(loop_) < 0) return false;

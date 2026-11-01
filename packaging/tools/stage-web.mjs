@@ -88,6 +88,15 @@ function copyTree(src, dst) {
   }
 }
 copyTree(settingsSrc, settingsOut);
+const requiredStylePreviews = [
+  'cadenza', 'cappella', 'claddagh', 'classic', 'diorama', 'fume', 'lumiere',
+  'monet', 'partita', 'pendolo', 'sonnet', 'still', 'tempera', 'tilt',
+];
+const missingStylePreviews = requiredStylePreviews
+  .filter((name) => !existsSync(join(settingsOut, 'styles', `${name}.jpg`)));
+if (missingStylePreviews.length > 0) {
+  throw new Error(`settings UI is missing style previews: ${missingStylePreviews.join(', ')}`);
+}
 let settingsBytes = 0;
 let settingsFiles = 0;
 (function walk(p) {

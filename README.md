@@ -1,13 +1,15 @@
-# spw-folia
+# spw-folia-for-linux
 
 Folia 歌词可视化插件，面向 Salt Player `1.19.3` 的 Linux 版本。
+
+项目主页：[spw-folia-for-linux GitHub Pages](https://tseshongfeeshur.github.io/spw-folia-for-linux/)。
 
 ## 目标环境
 
 - Linux `x86_64`
 - Wayland + KDE Plasma
 - JDK `25.0.4` 运行 Salt Player
-- 系统安装 Qt 6、QtWebEngine、PipeWire 和 Plasma StatusNotifier 支持
+- 系统安装 Qt 6、QtWebEngine、PipeWire、KDE Frameworks 6 `KStatusNotifierItem` 和 Plasma StatusNotifier 支持
 
 插件本身运行在 Salt Player JVM/PF4J 中；Folia 页面、QtWebEngine 窗口、Plasma 托盘和 PipeWire
 音频分析由 `.spmod` 内的 `native/spw-folia-host` 负责。Qt、QtWebEngine、Wayland、Plasma 和
@@ -20,16 +22,23 @@ PipeWire 不随插件重复打包。
 - PipeWire sink monitor、FFT、频谱和五频段音频驱动
 - 暂停或无音频时的呼吸值降级
 - 播放 / 暂停、上一首、下一首和定位
-- Plasma 托盘入口与标准快捷键入口
+- SPW 配置页“打开 / 显示 Folia”按钮、公开菜单 Hook 入口、Plasma 托盘入口和标准快捷键入口
+- 播放页右下角沿用 Folia 原版侧边面板开关；控制页仅保留歌曲信息、歌词样式、背景类型和颜色主题
+- 控制页末尾的设置图标直接打开 Folia 原版“歌词样式”调参弹窗，保留原版预览、布局和动画
+- 配置页使用说明、Linux 环境检测和诊断日志导出
 - 设置持久化、字体、主题和 Folia 样式调节
 
 Linux 版本不支持 X11 回退、透明窗口、鼠标穿透、Windows/WebView2、WASAPI、队列、随机/循环
-控制，也不使用 Salt Player 私有 hook 或反射播放器控制。
+控制，也不使用未公开的 Salt Player 内部注入器或反射播放器控制。SPW 1.19.3 的“更多”菜单入口
+使用 Workshop API 已暴露的 `HookRegistrar`，因此需要用户授权 `class-transform`；该入口是宿主
+混淆版本绑定的适配层，SPW 升级后可能需要更新插件。没有该权限时，配置页按钮和公开快捷键仍可用。
 
 ## 安装
 
-安装系统依赖后，在 Salt Player 中导入并启用 `.spmod`。插件会在第一次使用公开快捷键时启动
-Qt 宿主；宿主启动后会常驻并显示 Plasma 托盘。禁用或卸载插件会发送 `quit` 并关闭宿主。
+安装系统依赖后，在 Salt Player 中导入并启用 `.spmod`，按提示授予 `library-read`、`key-bindings`
+和 `class-transform`。插件配置页现在提供“打开 / 显示 Folia”按钮；也可使用“更多”菜单、公开
+快捷键（默认 `Ctrl+Alt+F`）或 Plasma 托盘。第一次打开时启动 Qt 宿主，宿主启动后注册 KDE
+StatusNotifier 托盘。禁用或卸载插件会发送 `quit` 并关闭宿主。
 
 详细依赖和构建说明见 [docs/linux-runtime.md](docs/linux-runtime.md)、[docs/protocol.md](docs/protocol.md)
 和 [docs/release.md](docs/release.md)。
@@ -44,32 +53,41 @@ Qt 宿主；宿主启动后会常驻并显示 Plasma 托盘。禁用或卸载插
 
 ## 从源码构建
 
+以下顺序会生成包含 Kotlin 插件、完整 Folia web bundle、Linux 原生宿主和许可证的最终
+`.spmod`。不要直接安装 `spw-folia/build/libs/plugin-dev.spw.folia-0.5.0.spmod`：它是
+Workshop Gradle 任务生成的 Kotlin 开发包，不包含 `native/` 和 `web/`，安装后会显示
+“Folia Linux host is unavailable”。
+
 ```sh
-# Kotlin plugin
+# settings UI（需要 work/folia/folia-major-main）
+pnpm --dir poc/settings-ui install --frozen-lockfile
+pnpm --dir poc/settings-ui build
+
+# Kotlin plugin；bash 用于兼容当前仓库中未设置 executable bit 的 gradlew
 cd spw-folia
-GRADLE_USER_HOME=/tmp/spw-gradle-home bash ./gradlew plugin
-
-# Qt6 / PipeWire host
+bash ./gradlew plugin
 cd ..
-cmake -S poc/webview/host-linux -B poc/webview/host-linux/build
-cmake --build poc/webview/host-linux/build
 
-# settings UI, requires work/folia/folia-major-main
-cd poc/settings-ui
-pnpm install --frozen-lockfile
-pnpm build
-
-# package staging and release assembly
-cd ../..
+# 构建 Qt6/Wayland/PipeWire 宿主并准备 packaging/web、packaging/native、packaging/licenses
 bash packaging/build-package.sh
+
+# 合并 Kotlin 开发包与上述 staging，生成可安装的完整 .spmod
 python3 packaging/tools/assemble-release.py \
   --spmod spw-folia/build/libs/plugin-dev.spw.folia-0.5.0.spmod \
-  --staging packaging --out dist/release
+  --staging packaging \
+  --out dist/release \
+  --name spw-folia-for-linux-0.5.0-linux-x86_64.spmod
 ```
 
-`poc/settings-ui` imports the Folia source checkout from `work/folia/folia-major-main`; its `dist/`
-is also the source for the bundled production page. Without that checkout the Kotlin and native
-builds still work, but the web resources cannot be rebuilt.
+最终文件是
+`dist/release/spw-folia-for-linux-0.5.0-linux-x86_64.spmod`。它必须包含 `classes/`、
+`web/`、`native/spw-folia-host` 和 `licenses/`；`native/spw-folia-host` 是可执行的 Linux
+`x86_64` ELF 文件。`packaging/build-package.sh` 会重新构建宿主、stage 完整 web bundle、
+保留可执行权限并生成校验和，`assemble-release.py` 会拒绝缺少关键文件的 staging 或插件包。
+
+`poc/settings-ui` 从 `work/folia/folia-major-main` 导入 Folia 源码；没有该 checkout 不能
+重新构建 web 资源。Qt、QtWebEngine、PipeWire、Wayland 和 Plasma 仍是目标机器上的系统依赖，
+不会被打包进 `.spmod`。
 
 ## License
 

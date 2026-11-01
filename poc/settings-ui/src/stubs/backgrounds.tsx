@@ -1,17 +1,21 @@
 /* Background registry stand-in for the settings window: the six built-in backgrounds and their real
  * settings cards. Only the panels are reused here — this bundle renders no background itself. */
 import React from 'react';
+import { Aperture, Columns3, Cone, Layers, Square, Wind } from 'lucide-react';
 import {
     DEFAULT_LATENT_BACKGROUND_TUNING,
     DEFAULT_MONET_BACKGROUND_TUNING,
     DEFAULT_NOMAND_BACKGROUND_TUNING,
     DEFAULT_SORA_BACKGROUND_TUNING,
 } from '@/types';
+import { cycleValue, QuickControlChip, QuickControlToggle } from '@/components/shared/QuickControlChip';
 import CommonBackgroundSettingsCard from '@/components/visualizer/backgrounds/common/CommonBackgroundSettingsCard';
 import LatentBackgroundSettingsCard from '@/components/visualizer/backgrounds/latent/LatentBackgroundSettingsCard';
 import { MonetBackgroundSettingsCard } from '@/components/visualizer/backgrounds/monet/MonetBackgroundSettingsCard';
 import NomandBackgroundSettingsCard from '@/components/visualizer/backgrounds/nomand/NomandBackgroundSettingsCard';
+import { EFFECTS, EFFECT_LABEL_KEYS } from '@/components/visualizer/backgrounds/nomand/NomandBackgroundEffectSettings';
 import SoraBackgroundSettingsCard from '@/components/visualizer/backgrounds/sora/SoraBackgroundSettingsCard';
+import { UrlBackgroundSettingsCard } from '@/components/visualizer/backgrounds/url/UrlBackgroundSettingsCard';
 
 export type VisualizerBackgroundMode = 'common' | 'monet' | 'nomand' | 'latent' | 'url' | 'sora';
 
@@ -26,8 +30,27 @@ interface BackgroundEntry {
      * background can be rendered (exactly Folia's PictureFrame fallback). */
     glyph: React.ReactNode;
     renderSettingsPanel?: (props: any) => React.ReactNode;
+    /** Original player-panel controls; renderers stay out of this settings-only registry. */
+    renderQuickControls?: (props: any) => React.ReactNode;
     resetSettings?: (actions?: any) => void;
 }
+
+const BACKGROUND_SOURCE_LABEL_KEYS = {
+    'cover-derived': 'options.monetBackgroundSourceCover',
+    'uploaded-global': 'options.monetBackgroundSourceUploaded',
+} as const;
+
+const LATENT_DISPLAY_MODES = ['dithering', 'mesh', 'both'] as const;
+const LATENT_DISPLAY_LABEL_KEYS = {
+    dithering: 'options.latentDisplayDithering',
+    mesh: 'options.latentDisplayMesh',
+    both: 'options.latentDisplayBoth',
+} as const;
+const LATENT_COLOR_SOURCES = ['cover-theme', 'cover-only'] as const;
+const LATENT_COLOR_SOURCE_LABEL_KEYS = {
+    'cover-theme': 'options.latentColorSourceCoverTheme',
+    'cover-only': 'options.latentColorSourceCoverOnly',
+} as const;
 
 const glyph = (children: React.ReactNode): React.ReactNode => (
     <svg
@@ -64,6 +87,29 @@ const entries: BackgroundEntry[] = [
             </>
         ),
         renderSettingsPanel: props => <CommonBackgroundSettingsCard {...props} />,
+        renderQuickControls: ({ config, actions, t }: any) => {
+            const useCoverColorBg = config?.common?.useCoverColorBg ?? false;
+            const vignette = !(config?.common?.disableVignette ?? false);
+
+            return (
+                <>
+                    <QuickControlToggle
+                        active={useCoverColorBg}
+                        label={t(useCoverColorBg ? 'theme.addCoverColor' : 'theme.useDefaultColor')}
+                        onToggle={() => actions?.common?.onCoverColorChange?.(!useCoverColorBg)}
+                    >
+                        <Cone size={14} />
+                    </QuickControlToggle>
+                    <QuickControlToggle
+                        active={vignette}
+                        label={t('options.visualizerVignette')}
+                        onToggle={() => actions?.common?.onDisableVignetteChange?.(vignette)}
+                    >
+                        <Aperture size={14} />
+                    </QuickControlToggle>
+                </>
+            );
+        },
         resetSettings: actions => {
             actions?.common?.onOpacityChange?.(0.75);
             actions?.common?.onCoverColorChange?.(false);
@@ -90,6 +136,45 @@ const entries: BackgroundEntry[] = [
                 {...drag(props)}
             />
         ),
+        renderQuickControls: ({ config, actions, t }: any) => {
+            const tuning = config?.monet?.tuning ?? DEFAULT_MONET_BACKGROUND_TUNING;
+            const isFullOverlay = tuning.backgroundLayout === 'full-overlay';
+            const source = tuning.backgroundSource;
+            const sourceLabel = t(BACKGROUND_SOURCE_LABEL_KEYS[source as keyof typeof BACKGROUND_SOURCE_LABEL_KEYS]);
+            const hasImage = Boolean(config?.customImage);
+            const change = (patch: Record<string, unknown>) => actions?.monet?.onTuningChange?.(patch);
+            const layoutLabel = t(isFullOverlay ? 'options.monetLayoutFullOverlay' : 'options.monetLayoutHalfPane');
+
+            return (
+                <>
+                    <QuickControlChip
+                        label={layoutLabel}
+                        title={`${t('options.monetBackgroundLayout')}: ${layoutLabel}`}
+                        onClick={() => change({ backgroundLayout: isFullOverlay ? 'half-pane-gradient' : 'full-overlay' })}
+                    />
+                    <QuickControlChip
+                        label={sourceLabel}
+                        title={`${t('options.monetBackgroundSource')}: ${sourceLabel}`}
+                        disabled={!hasImage && source === 'cover-derived'}
+                        onClick={() => change({ backgroundSource: hasImage && source === 'cover-derived' ? 'uploaded-global' : 'cover-derived' })}
+                    />
+                    <QuickControlToggle
+                        active={tuning.backgroundStreaksEnabled}
+                        label={t('options.monetBackgroundStreaksEnabled')}
+                        onToggle={() => change({ backgroundStreaksEnabled: !tuning.backgroundStreaksEnabled })}
+                    >
+                        <Columns3 size={14} />
+                    </QuickControlToggle>
+                    <QuickControlToggle
+                        active={tuning.backgroundDriftEnabled}
+                        label={t('options.monetBackgroundDriftEnabled')}
+                        onToggle={() => change({ backgroundDriftEnabled: !tuning.backgroundDriftEnabled })}
+                    >
+                        <Wind size={14} />
+                    </QuickControlToggle>
+                </>
+            );
+        },
         resetSettings: actions => actions?.monet?.onResetTuning?.(),
     },
     {
@@ -113,6 +198,37 @@ const entries: BackgroundEntry[] = [
                 {...drag(props)}
             />
         ),
+        renderQuickControls: ({ config, actions, t }: any) => {
+            const tuning = config?.nomand?.tuning ?? DEFAULT_NOMAND_BACKGROUND_TUNING;
+            const source = tuning.imageSource;
+            const sourceLabel = t(BACKGROUND_SOURCE_LABEL_KEYS[source as keyof typeof BACKGROUND_SOURCE_LABEL_KEYS]);
+            const hasImage = Boolean(config?.customImage);
+            const effectLabel = t(EFFECT_LABEL_KEYS[tuning.effect as keyof typeof EFFECT_LABEL_KEYS]);
+            const change = (patch: Record<string, unknown>) => actions?.nomand?.onTuningChange?.(patch);
+
+            return (
+                <>
+                    <QuickControlChip
+                        label={sourceLabel}
+                        title={`${t('options.nomandBackgroundSource')}: ${sourceLabel}`}
+                        disabled={!hasImage && source === 'cover-derived'}
+                        onClick={() => change({ imageSource: hasImage && source === 'cover-derived' ? 'uploaded-global' : 'cover-derived' })}
+                    />
+                    <QuickControlChip
+                        label={effectLabel}
+                        title={`${t('options.nomandBackgroundEffect')}: ${effectLabel}`}
+                        onClick={() => change({ effect: cycleValue(EFFECTS, tuning.effect) })}
+                    />
+                    <QuickControlToggle
+                        active={tuning.overlayEnabled}
+                        label={t('options.nomandBackgroundOverlay')}
+                        onToggle={() => change({ overlayEnabled: !tuning.overlayEnabled })}
+                    >
+                        <Layers size={14} />
+                    </QuickControlToggle>
+                </>
+            );
+        },
         resetSettings: actions => actions?.nomand?.onResetTuning?.(),
     },
     {
@@ -134,6 +250,33 @@ const entries: BackgroundEntry[] = [
                 {...drag(props)}
             />
         ),
+        renderQuickControls: ({ config, actions, t }: any) => {
+            const tuning = config?.latent?.tuning ?? DEFAULT_LATENT_BACKGROUND_TUNING;
+            const displayLabel = t(LATENT_DISPLAY_LABEL_KEYS[tuning.displayMode as keyof typeof LATENT_DISPLAY_LABEL_KEYS]);
+            const colorLabel = t(LATENT_COLOR_SOURCE_LABEL_KEYS[tuning.colorSource as keyof typeof LATENT_COLOR_SOURCE_LABEL_KEYS]);
+
+            return (
+                <>
+                    <QuickControlChip
+                        label={displayLabel}
+                        title={`${t('options.latentDisplayMode')}: ${displayLabel}`}
+                        onClick={() => actions?.latent?.onTuningChange?.({ displayMode: cycleValue(LATENT_DISPLAY_MODES, tuning.displayMode) })}
+                    />
+                    <QuickControlChip
+                        label={colorLabel}
+                        title={`${t('options.latentColorSource')}: ${colorLabel}`}
+                        onClick={() => actions?.latent?.onTuningChange?.({ colorSource: cycleValue(LATENT_COLOR_SOURCES, tuning.colorSource) })}
+                    />
+                    <QuickControlToggle
+                        active={tuning.overlayEnabled}
+                        label={t('options.nomandBackgroundOverlay')}
+                        onToggle={() => actions?.latent?.onTuningChange?.({ overlayEnabled: !tuning.overlayEnabled })}
+                    >
+                        <Layers size={14} />
+                    </QuickControlToggle>
+                </>
+            );
+        },
         resetSettings: actions => actions?.latent?.onResetTuning?.(),
     },
     {
@@ -146,6 +289,17 @@ const entries: BackgroundEntry[] = [
                 <rect x="3.5" y="5" width="17" height="14" rx="2" />
                 <path d="M3.5 9.5h17" opacity="0.55" />
             </>
+        ),
+        renderSettingsPanel: props => (
+            <UrlBackgroundSettingsCard
+                t={props.t}
+                urlBackgroundList={props.config?.url?.items}
+                urlBackgroundSelectedId={props.config?.url?.selectedId}
+                onAddUrlBackgroundItem={props.actions?.url?.onAdd}
+                onUpdateUrlBackgroundItem={props.actions?.url?.onUpdate}
+                onDeleteUrlBackgroundItem={props.actions?.url?.onDelete}
+                onSetUrlBackgroundSelectedId={props.actions?.url?.onSelect}
+            />
         ),
     },
     {
@@ -166,6 +320,18 @@ const entries: BackgroundEntry[] = [
                 onTuningChange={props.actions?.sora?.onTuningChange}
             />
         ),
+        renderQuickControls: ({ config, actions, t }: any) => {
+            const tuning = config?.sora?.tuning ?? DEFAULT_SORA_BACKGROUND_TUNING;
+            return (
+                <QuickControlToggle
+                    active={tuning.blank}
+                    label={t('options.soraBlank')}
+                    onToggle={() => actions?.sora?.onTuningChange?.({ blank: !tuning.blank })}
+                >
+                    <Square size={14} />
+                </QuickControlToggle>
+            );
+        },
         resetSettings: actions => actions?.sora?.onResetTuning?.(),
     },
 ];

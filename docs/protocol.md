@@ -1,4 +1,4 @@
-# spw-folia Linux Protocol v1
+# spw-folia-for-linux Linux Protocol v1
 
 The Kotlin plugin runs inside Salt Player. `native/spw-folia-host` is a Qt 6 process for Linux
 x86_64 Wayland sessions. The host owns the Wayland window, Plasma tray, QtWebEngine page, PipeWire
@@ -14,8 +14,10 @@ Salt Player JVM -> spw-folia-host (Qt6 / QtWebEngine / PipeWire)
 ```
 
 The host is started with `--bundle <web-dir>` and sets `QT_QPA_PLATFORM=wayland`. X11 fallback,
-Windows/WebView2, transparent windows, mouse passthrough, and private Salt Player hooks are not
-part of this protocol.
+Windows/WebView2, transparent windows, mouse passthrough, and reflective playback controls are not
+part of this protocol. The Salt Player entry is outside the process protocol: the plugin exposes a
+configuration-page button and shortcut, and also registers the public Workshop `HookRegistrar` menu
+adapter when `class-transform` is granted.
 
 ## Plugin to Host
 
@@ -28,7 +30,7 @@ Every line is one UTF-8 JSON object.
 | `state` | `posMs`, `durationMs`, `playing`, `rate`, `tsMs` | Playback clock, sent every 100 ms. |
 | `lyrics` | `lyrics: object` | Lyrics and word timing JSON. |
 | `track` | `track: object` | Track metadata and cover data URL. |
-| `action` | `action:"toggle"` | Show or hide the host window. |
+| `action` | `action:"toggle"` or `action:"show"` | Toggle, or show, the host window. |
 | `quit` | none | Graceful host shutdown. |
 
 The host also emits `audio` internally to the page. Audio is never forwarded through the JVM.
@@ -59,6 +61,11 @@ delivered by calling `window.__SPW_FOLIA_HOST_DELIVER__(message)`.
 
 Page messages are limited to `settings`, `control`, `action`, and `log`. Host messages are limited to
 `hello`, `settings`, `state`, `lyrics`, `track`, `audio`, `config`, and `ui`.
+
+For host-to-page delivery, Qt serializes the `QJsonObject` as UTF-8 JSON, encodes those bytes as
+Base64 for safe JavaScript injection, and the page bridge decodes the Base64 bytes with UTF-8 before
+calling `JSON.parse`. Calling `JSON.parse(atob(...))` directly is incorrect because `atob()` exposes
+one Latin-1 code unit per byte and turns non-ASCII text into mojibake.
 
 ## Audio
 

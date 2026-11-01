@@ -67,14 +67,14 @@ tasks.processResources {
 spmod {
     PluginClass = "dev.spw.folia.FoliaPlugin"
     PluginId = "dev.spw.folia"
-    PluginName = "spw-folia"
+    PluginName = "spw-folia-for-linux"
     PluginDescription = "Folia fullscreen lyric mode for Salt Player on Linux Wayland"
     PluginVersion = "0.5.0"
     PluginProvider = "azkbzxf, Ryan(tseshongfeeshur)"
-    // Linux uses the standard shortcut and the Plasma tray; no private Salt Player config page is
-    // required for opening or controlling the host.
-    PluginHasConfig = false
-    PluginOpenSourceUrl = "https://github.com/tseshongfeeshur/spw-folia"
+    // The SPW plugin page exposes preference_config.json. It contains the supported Folia switches
+    // and a button that invokes FoliaPlugin.onOpenFolia(), so this must stay true.
+    PluginHasConfig = true
+    PluginOpenSourceUrl = "https://github.com/tseshongfeeshur/spw-folia-for-linux"
     // v0.3.2: KEY_BINDINGS backs the user-configurable open/close shortcut (SPW 快捷键管理).
     PluginPermissions = listOf(
         PluginPermission.LIBRARY_READ,
@@ -109,7 +109,7 @@ val devDefaultSettings = File(repoRoot, "packaging/testdata/default-settings.jso
 // Reuse the production stager instead of duplicating its index.html patching and preview generation.
 val stageDevWeb by tasks.registering(Exec::class) {
     description = "Stages the Folia web bundle for local plugin installs (same layout as packaging/web)."
-    group = "spw-folia"
+    group = "spw-folia-for-linux"
     val stageRoot = layout.buildDirectory.dir("web-stage").get().asFile
     val stageWeb = stageRoot.resolve("web")
     val stageReport = stageRoot.resolve("report.json")
@@ -131,7 +131,7 @@ inputs.file(File(repoRoot, "poc/webview/host-linux/scripts/Shim.js"))
 
 val syncDevAssets by tasks.registering(Sync::class) {
     description = "Stages the native helper + Folia web bundle for local plugin installs."
-    group = "spw-folia"
+    group = "spw-folia-for-linux"
     dependsOn(stageDevWeb)
     into(layout.buildDirectory.dir("plugin-root"))
     from(hostSrcDir) {

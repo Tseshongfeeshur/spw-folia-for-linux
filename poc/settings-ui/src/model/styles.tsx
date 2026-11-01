@@ -232,7 +232,7 @@ const orderDrifted = missingFromStyles.length === 0
     && declaredShelfOrder.join(',') !== STYLE_MODE_SHELF_ORDER.join(',');
 if (missingFromStyles.length > 0 || staleInStyles.length > 0 || orderDrifted) {
     throw new Error(
-        '[spw-folia] model/styles.tsx 与 model/settings.ts 的样式清单不一致：'
+        '[spw-folia-for-linux] model/styles.tsx 与 model/settings.ts 的样式清单不一致：'
         + `${missingFromStyles.length > 0 ? ` styles.tsx 缺少 ${missingFromStyles.join(', ')}；` : ''}`
         + `${staleInStyles.length > 0 ? ` styles.tsx 多出 ${staleInStyles.join(', ')}；` : ''}`
         + `${orderDrifted ? ` 排序不同（styles.tsx: ${declaredShelfOrder.join(',')} / settings.ts: ${STYLE_MODE_SHELF_ORDER.join(',')}）；` : ''}`

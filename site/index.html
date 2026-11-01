@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>spw-folia — 让歌词成为风景</title>
+<title>spw-folia-for-linux — 让歌词成为风景</title>
 <meta name="description" content="面向 Salt Player 1.19.3 的 Linux Folia 歌词可视化插件：Wayland、KDE Plasma、QtWebEngine 与 PipeWire 原生宿主。" />
-<meta property="og:title" content="spw-folia — 让歌词成为风景" />
+<link rel="canonical" href="https://tseshongfeeshur.github.io/spw-folia-for-linux/" />
+<meta property="og:title" content="spw-folia-for-linux — 让歌词成为风景" />
 <meta property="og:description" content="在 Linux Wayland 与 KDE Plasma 上运行 Folia 渲染器，歌词、播放状态和音频随 Salt Player 同步。" />
+<meta property="og:url" content="https://tseshongfeeshur.github.io/spw-folia-for-linux/" />
 <meta property="og:image" content="assets/video/hero-poster.jpg" />
 <meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2306060a'/%3E%3Cpath d='M16 6l2.6 7.4L26 16l-7.4 2.6L16 26l-2.6-7.4L6 16l7.4-2.6z' fill='%23ffb545'/%3E%3C/svg%3E" />
@@ -19,7 +21,7 @@
     <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
       <path d="M16 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" />
     </svg>
-    <span>spw-folia</span>
+    <span>spw-folia-for-linux</span>
   </a>
   <div class="nav-links">
     <a href="#styles">样式</a>
@@ -27,7 +29,7 @@
     <a href="#runtime">运行边界</a>
     <a href="#settings">设置</a>
     <a href="#install">安装</a>
-    <a class="nav-cta" href="https://github.com/tseshongfeeshur/spw-folia" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-cta" href="https://github.com/tseshongfeeshur/spw-folia-for-linux" target="_blank" rel="noopener">GitHub</a>
   </div>
 </nav>
 
@@ -49,7 +51,7 @@
       页面中的视频与部分截图来自旧 Windows 构建，仅用于展示 Folia 视觉效果；当前支持范围以 Linux 运行说明为准。
     </p>
     <div class="hero-actions">
-      <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases" target="_blank" rel="noopener">
+      <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia-for-linux/releases" target="_blank" rel="noopener">
         查看 Releases <span class="btn-sub">.spmod</span>
       </a>
       <a class="btn btn-ghost" href="#styles">查看 14 种样式</a>
@@ -183,10 +185,11 @@
           <li>目标环境：Linux x86_64 + Wayland + KDE Plasma</li>
           <li>不提供 X11 回退，也不打包 Qt 或 PipeWire</li>
           <li>不支持透明窗口、鼠标穿透、Windows/WebView2、WASAPI 和队列控制</li>
+          <li>入口包括配置页按钮、公开快捷键、Plasma 托盘；SPW 1.19.3 “更多”菜单使用公开 HookRegistrar</li>
         </ul>
       </div>
 
-      <div class="runtime-diagram reveal" aria-label="spw-folia Linux 进程架构">
+      <div class="runtime-diagram reveal" aria-label="spw-folia-for-linux Linux 进程架构">
         <div class="runtime-row runtime-row-plugin">
           <span class="runtime-mark">K</span>
           <div><b>Salt Player JVM / PF4J</b><small>公开 Workshop API · 播放状态 · 快捷键</small></div>
@@ -209,14 +212,14 @@
   <section class="section settings" id="settings">
     <div class="wrap split split-rev">
       <figure class="shot reveal">
-        <img src="assets/stills/settings-ui.jpg" alt="spw-folia 历史设置页截图：左侧为预览，右侧为样式与参数面板" loading="lazy" />
+        <img src="assets/stills/settings-ui.jpg" alt="spw-folia-for-linux 历史设置页截图：左侧为预览，右侧为样式与参数面板" loading="lazy" />
         <figcaption class="legacy-visual-note">历史 Windows 构建截图；用于说明 Folia 设置布局，当前平台边界见上文。</figcaption>
       </figure>
       <div class="split-copy reveal">
         <p class="kicker">05 — 一样的手感</p>
         <h2>沿用 Folia<em>设置体系</em></h2>
         <p class="sub">
-          设置页保留 Folia 的样式、背景、字体、字幕和调参逻辑。设置树由插件持久化，页面和播放窗口使用同一份配置。
+          播放页右下角沿用 Folia 原版侧边面板动画；控制页保持清爽，只保留歌曲信息、歌词样式、背景类型和颜色主题。面板内的设置按钮直接打开 Folia 原版歌词样式调参弹窗。设置树由插件持久化，页面和播放窗口使用同一份配置。
         </p>
         <ul class="ticks">
           <li>14 种样式、纹理分辨率、镜头和文字动势调节</li>
@@ -244,7 +247,7 @@
             <span class="step-n">1</span>
             <div>
               <h3>安装系统依赖</h3>
-              <p>准备 Qt 6 Widgets、QtWebEngine、PipeWire <code>libpipewire-0.3</code>、Wayland 和 Plasma 托盘支持。</p>
+              <p>准备 Qt 6 Widgets、QtWebEngine、PipeWire <code>libpipewire-0.3</code>、KDE Frameworks 6 <code>KStatusNotifierItem</code>、Wayland 和 Plasma 托盘支持。</p>
             </div>
           </li>
           <li class="reveal">
@@ -258,14 +261,14 @@
             <span class="step-n">3</span>
             <div>
               <h3>启用公开权限</h3>
-              <p>按 Salt Player 提示授予 <code>library-read</code> 和 <code>key-bindings</code>；不需要 class-transform。</p>
+              <p>按 Salt Player 提示授予 <code>library-read</code>、<code>key-bindings</code> 和 <code>class-transform</code>。后者只用于公开 Workshop HookRegistrar 菜单入口。</p>
             </div>
           </li>
           <li class="reveal">
             <span class="step-n">4</span>
             <div>
-              <h3>用快捷键或托盘打开</h3>
-              <p>在 Salt Player 的快捷键设置中触发 Folia（默认 <code>Ctrl+Alt+F</code>），也可以使用 Plasma 托盘入口。</p>
+              <h3>从配置、菜单或托盘打开</h3>
+              <p>插件配置页提供“打开 / 显示 Folia”按钮；SPW 1.19.3 的“更多”菜单、公开快捷键（默认 <code>Ctrl+Alt+F</code>）和 Plasma 托盘也都可打开。</p>
             </div>
           </li>
         </ol>
@@ -274,7 +277,7 @@
           <p class="kicker">运行时提醒</p>
           <h3>插件包不携带桌面运行时</h3>
           <p>Qt、QtWebEngine、Wayland、KDE Plasma 和 PipeWire 必须由 Linux 系统安装。宿主首次启动后会常驻托盘，禁用或卸载插件时退出。</p>
-          <a href="https://github.com/tseshongfeeshur/spw-folia/blob/main/docs/linux-runtime.md" target="_blank" rel="noopener">阅读完整依赖说明</a>
+          <a href="https://github.com/tseshongfeeshur/spw-folia-for-linux/blob/main/docs/linux-runtime.md" target="_blank" rel="noopener">阅读完整依赖说明</a>
         </aside>
       </div>
     </div>
@@ -284,8 +287,8 @@
     <div class="wrap">
       <p class="reveal">把夜晚交给一行歌词。</p>
       <div class="hero-actions reveal">
-        <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia/releases" target="_blank" rel="noopener">查看 Releases <span class="btn-sub">.spmod</span></a>
-        <a class="btn btn-ghost" href="https://github.com/tseshongfeeshur/spw-folia" target="_blank" rel="noopener">查看源码</a>
+        <a class="btn btn-gold" href="https://github.com/tseshongfeeshur/spw-folia-for-linux/releases" target="_blank" rel="noopener">查看 Releases <span class="btn-sub">.spmod</span></a>
+        <a class="btn btn-ghost" href="https://github.com/tseshongfeeshur/spw-folia-for-linux" target="_blank" rel="noopener">查看源码</a>
       </div>
     </div>
   </section>
@@ -296,21 +299,22 @@
     <div class="footer-brand">
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" /></svg>
       <div>
-        <p class="footer-name">spw-folia</p>
+        <p class="footer-name">spw-folia-for-linux</p>
         <p class="footer-desc">Salt Player 1.19.3 的 Linux Folia 歌词可视化插件</p>
       </div>
     </div>
     <div class="footer-links">
-      <a href="https://github.com/tseshongfeeshur/spw-folia" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://github.com/tseshongfeeshur/spw-folia/releases" target="_blank" rel="noopener">Releases</a>
-      <a href="https://github.com/tseshongfeeshur/spw-folia/blob/main/docs/architecture.md" target="_blank" rel="noopener">文档</a>
-      <a href="https://github.com/tseshongfeeshur/spw-folia/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0</a>
+      <a href="https://github.com/tseshongfeeshur/spw-folia-for-linux" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/tseshongfeeshur/spw-folia-for-linux/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/tseshongfeeshur/spw-folia-for-linux/blob/main/docs/architecture.md" target="_blank" rel="noopener">文档</a>
+      <a href="https://github.com/tseshongfeeshur/spw-folia-for-linux/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0</a>
     </div>
   </div>
   <div class="wrap footer-fine">
     <p>
       渲染器来自 <a href="https://github.com/chthollyphile/Folia" target="_blank" rel="noopener">Folia</a>（chthollyphile）；
-      当前宿主为 Linux Qt6/QtWebEngine 进程，插件侧仅使用公开 Workshop API。页面中的视频和部分截图属于旧 Windows 构建历史素材。
+      当前宿主为 Linux Qt6/QtWebEngine 进程，插件侧使用公开 Workshop API，包括配置、快捷键和
+      `HookRegistrar` 菜单扩展。页面中的视频和部分截图属于旧 Windows 构建历史素材。
     </p>
   </div>
 </footer>

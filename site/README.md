@@ -1,10 +1,10 @@
-# spw-folia promo site
+# spw-folia-for-linux project site
 
 This is the repository's static project page. It has no build step and no runtime dependency: GitHub
 Pages receives the contents of this directory as-is. A local HTTP server is useful when testing video
 range requests, but the page itself is plain HTML, CSS, JavaScript and bundled assets.
 
-The public site is deployed to `https://tseshongfeeshur.github.io/spw-folia/` by
+The public site is deployed to `https://tseshongfeeshur.github.io/spw-folia-for-linux/` by
 [`.github/workflows/pages.yml`](../.github/workflows/pages.yml). The deployment model is documented in
 [`docs/github-pages.md`](../docs/github-pages.md).
 
@@ -12,7 +12,7 @@ The public site is deployed to `https://tseshongfeeshur.github.io/spw-folia/` by
 
 | Path | Purpose |
 | --- | --- |
-| `index.html` | Current Linux-only product page and installation boundary. |
+| `index.html` | Current Linux-only product page, permissions, entry points and installation boundary. |
 | `style.css` | Page styling and responsive layout. |
 | `main.js` | Style gallery, scroll reveals, counters, lazy video playback and lightbox. |
 | `assets/styles/` | Folia style thumbnails used by the gallery. |

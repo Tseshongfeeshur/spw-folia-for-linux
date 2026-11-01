@@ -1,8 +1,8 @@
 /* The zh-CN bundle is Folia's own locale data, so every kit label we reuse reads exactly like the
  * desktop app. Only the settings window is translated here; the bundle is static.
  *
- * v0.4.0: the plugin adds a few labels of its own (the font import flow, the player-chrome close
- * button). They live here in a small overlay instead of in `work/folia/…/zh-CN.ts`, because that
+ * v0.4.0: the plugin adds a few labels of its own (the font import flow). They live here in a small
+ * overlay instead of in `work/folia/…/zh-CN.ts`, because that
  * checkout is pristine upstream source — editing it would surface as a diff on the next sync for a
  * string that only this window ever shows. Keys already present upstream must NOT be repeated
  * here, or the overlay silently wins over Folia's own wording. */
@@ -27,8 +27,6 @@ const LOCAL_KEYS = {
         fontImportFailed: '字体导入失败',
         fontRemove: '移除',
         chooseSystemFontEmpty: '这台电脑上没有可用的系统字体列表',
-        /** v0.4.0: top-left close button on the player chrome (mirror of the top-right gear). */
-        closePlayer: '退出 Folia',
     },
 } as const;
 

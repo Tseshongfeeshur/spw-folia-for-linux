@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the built spw-folia .spmod into a Linux Salt Player workshop directory.
+# Install the built spw-folia-for-linux .spmod into a Linux Salt Player workshop directory.
 #
 # Usage: SPW_WORKSHOP_PLUGINS=/path/to/workshop/plugins bash spw-folia/scripts/install-local.sh [--fresh]
 #   --fresh    also delete workshop/data/dev.spw.folia (settings tree); default keeps it
@@ -36,7 +36,7 @@ echo "backup: $BACKUP"
 # drop previous installs of this plugin (id dir + workshop name dir + stray .spmod)
 # so the host cannot load two copies of dev.spw.folia at once
 shopt -s nullglob
-for old in "$PLUGINS/${PLUGIN_ID}-"* "$PLUGINS/spw-folia-"*; do
+for old in "$PLUGINS/${PLUGIN_ID}-"* "$PLUGINS/spw-folia-for-linux-"* "$PLUGINS/spw-folia-"*; do
   if [ "$old" = "$DEST" ]; then continue; fi
   rm -rf "$old"
   echo "removed stale: $old"
@@ -65,18 +65,22 @@ PY
 ASSETS="$ROOT/spw-folia/build/plugin-root"
 if [ -d "$ASSETS" ]; then
   cp -a "$ASSETS/." "$DEST/"
+  for host in "$DEST/native/spw-folia-host" "$DEST/host/spw-folia-host"; do
+    if [ -f "$host" ]; then chmod 755 "$host"; fi
+  done
   echo "staged assets: $(ls "$ASSETS")"
 else
   echo "WARN: $ASSETS missing (run: gradle plugin) — plugin will use dev-checkout fallback paths" >&2
 fi
 
 # enable (plain line list) + pre-grant declared permissions (reviewed+granted)
-# key-bindings backs the public shortcut-manager action used to open or toggle Folia.
+# key-bindings backs the public shortcut-manager action; class-transform backs the public
+# Workshop HookRegistrar More-menu entry. The config-page button needs neither permission.
 python - "$PLUGINS" "$PLUGIN_ID" <<'PY'
 import json, sys
 from pathlib import Path
 plugins, plugin_id = Path(sys.argv[1]), sys.argv[2]
-DECLARED = ["library-read", "key-bindings"]
+DECLARED = ["library-read", "key-bindings", "class-transform"]
 
 enabled = plugins / "enabled.txt"
 lines = [l.strip() for l in enabled.read_text(encoding="utf-8").splitlines() if l.strip()] if enabled.exists() else []

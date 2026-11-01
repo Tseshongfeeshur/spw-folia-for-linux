@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Assemble the shippable spw-folia package tree (the payload of the final .spmod).
+# Assemble the shippable spw-folia-for-linux package tree (the payload of the final .spmod).
 #
 #   packaging/
 #     web/                  minimal Folia web subset + settings UI island   -> .spmod/web/
@@ -18,7 +18,7 @@ HOST="$ROOT/poc/webview/host-linux/build"
 DIST="$ROOT/work/folia/folia-major-main/dist"
 FOLIA_LICENSE="$ROOT/work/folia/folia-major-main/LICENSE"
 
-echo "== spw-folia package assembly =="
+echo "== spw-folia-for-linux package assembly =="
 echo "root: $ROOT"
 
 echo "-- building Linux host"

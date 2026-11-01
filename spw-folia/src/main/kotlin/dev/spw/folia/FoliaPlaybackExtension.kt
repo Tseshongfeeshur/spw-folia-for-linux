@@ -12,7 +12,6 @@ import com.xuncorp.spw.workshop.api.UnstableSpwWorkshopApi
 import com.xuncorp.spw.workshop.api.WorkshopApi
 import org.pf4j.Extension
 import java.util.Base64
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -49,34 +48,13 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
     /** Id of the track whose cover is currently being fetched (dedupes out-of-band requests). */
     private val coverLoadingId = AtomicReference<String?>(null)
     private val trackExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "spw-folia-track").apply { isDaemon = true }
+        Thread(r, "spw-folia-for-linux-track").apply { isDaemon = true }
     }
 
     private val cachedLyrics = AtomicReference<String?>(null)
     private val cachedLyricsVersion = AtomicLong(-1)
     private val cachedTrack = AtomicReference<String?>(null)
     private val cachedTrackVersion = AtomicLong(-1)
-
-    // ---- diagnostic counters: first call + one summary per 10 s -------------------------------
-    private val callbackCounts = ConcurrentHashMap<String, AtomicLong>()
-    private val lastSummaryMs = AtomicLong(0L)
-
-    private fun noteCallback(kind: String, detail: Any?) {
-        val count = callbackCounts.computeIfAbsent(kind) { AtomicLong(0) }.incrementAndGet()
-        if (count == 1L) {
-            FoliaPlugin.logStatic("callback $kind first: $detail")
-        }
-        val now = System.currentTimeMillis()
-        val last = lastSummaryMs.get()
-        if (now - last >= 10_000L && lastSummaryMs.compareAndSet(last, now)) {
-            val summary = callbackCounts.entries.joinToString(", ") { "${it.key}=${it.value.get()}" }
-            val snapshot = controller.snapshot()
-            FoliaPlugin.logStatic(
-                "callbacks/10s: $summary | pos=${controller.positionMs().toLong()} " +
-                    "playing=${snapshot.playing} duration=${snapshot.durationMs}"
-            )
-        }
-    }
 
     init {
         instance = this
@@ -112,14 +90,14 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
             if (index > 0) sb.append(',')
             sb.append("{\"startMs\":").append(line.startTime)
                 .append(",\"endMs\":").append(line.endTime)
-                .append(",\"main\":").append(Json.str(line.pureMainText))
-                .append(",\"sub\":").append(Json.str(line.pureSubText ?: ""))
+                .append(",\"main\":").append(Json.str(TextEncoding.repair(line.pureMainText)))
+                .append(",\"sub\":").append(Json.str(TextEncoding.repair(line.pureSubText ?: "")))
                 .append(",\"cells\":[")
             line.lyricsCells.forEachIndexed { cellIndex, cell ->
                 if (cellIndex > 0) sb.append(',')
                 sb.append("{\"startMs\":").append(cell.startTime)
                     .append(",\"endMs\":").append(cell.endTime)
-                    .append(",\"text\":").append(Json.str(cell.text))
+                    .append(",\"text\":").append(Json.str(TextEncoding.repair(cell.text)))
                     .append('}')
             }
             sb.append("]}")
@@ -142,9 +120,9 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
         }
         val json = buildString {
             append("{\"id\":").append(Json.str(item.id))
-            append(",\"title\":").append(Json.str(item.title))
-            append(",\"artist\":").append(Json.str(item.artist))
-            append(",\"album\":").append(Json.str(item.album))
+            append(",\"title\":").append(Json.str(TextEncoding.repair(item.title)))
+            append(",\"artist\":").append(Json.str(TextEncoding.repair(item.artist)))
+            append(",\"album\":").append(Json.str(TextEncoding.repair(item.album)))
             append(",\"durationMs\":").append(item.duration)
             coverDataUrl?.let { append(",\"coverDataUrl\":").append(Json.str(it)) }
             append('}')
@@ -174,28 +152,23 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
 
     override fun onStateChanged(state: State) {
         controller.onStateChanged(mapState(state))
-        noteCallback("state", state.name)
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         controller.onIsPlayingChanged(isPlaying)
-        noteCallback("playing", isPlaying)
     }
 
     override fun onSeekTo(position: Long) {
         controller.onSeekTo(position)
-        noteCallback("seek", position)
     }
 
     override fun onPositionUpdated(position: Long) {
         controller.onPositionUpdated(position)
-        noteCallback("position", position)
     }
 
     override fun onLyricsLinesUpdated(lyricsLines: List<LyricsLine>) {
         lyrics = lyricsLines
         lyricsVersion.incrementAndGet()
-        noteCallback("lyrics", lyricsLines.size)
     }
 
     override fun onLyricsLineUpdated(lyricsLine: LyricsLine?) {
@@ -205,14 +178,12 @@ class FoliaPlaybackExtension : PlaybackExtensionPoint {
     override fun onBeforeLoadLyrics(mediaItem: MediaItem): String? {
         adoptMediaItem(mediaItem)
         refreshTrackIfStale(force = true)
-        noteCallback("beforeLoadLyrics", mediaItem.title)
         return null
     }
 
     override fun onAfterLoadLyrics(mediaItem: MediaItem): String? {
         adoptMediaItem(mediaItem)
         refreshTrackIfStale(force = true)
-        noteCallback("afterLoadLyrics", mediaItem.title)
         return null
     }
 

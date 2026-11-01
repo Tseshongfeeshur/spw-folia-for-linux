@@ -12,7 +12,7 @@ Pages artifact；artifact 的根目录就是仓库里的 `site/`。
 3. `actions/upload-pages-artifact@v3` 使用 `path: site` 打包目录。这个路径是关键：只有
    `site/` 下的 `index.html`、`style.css`、`main.js` 和资源进入 Pages artifact。
 4. `actions/deploy-pages@v4` 把刚才的 artifact 发布到 Pages。仓库项目站点的地址是
-   `https://tseshongfeeshur.github.io/spw-folia/`。
+   `https://tseshongfeeshur.github.io/spw-folia-for-linux/`。
 
 workflow 还设置了：
 

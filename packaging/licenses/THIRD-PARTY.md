@@ -1,10 +1,10 @@
-# THIRD-PARTY COMPONENTS - spw-folia
+# THIRD-PARTY COMPONENTS - spw-folia-for-linux
 
 | component | version | license | where |
 | --- | --- | --- | --- |
 | Folia web build (`folia-major`) | 0.7.22 | AGPL-3.0 | `web/**` |
 | Folia visualizer and settings components | 0.7.22 | AGPL-3.0 | bundled web build and settings island |
-| spw-folia settings UI | this repository | AGPL-3.0 | `web/settings/**` |
+| spw-folia-for-linux settings UI | this repository | AGPL-3.0 | `web/settings/**` |
 | Qt 6 / QtWebEngine | system dependency | distribution-provided licenses | native host runtime |
 | PipeWire `libpipewire-0.3` | system dependency | distribution-provided license | native host runtime |
 | Salt Player Workshop API | 0.1.0-dev23 | host-provided | Kotlin `compileOnly` dependency |
