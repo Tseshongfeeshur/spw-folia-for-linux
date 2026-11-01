@@ -46,6 +46,8 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
         }
         registerToggleShortcut()
         writeLog("started Linux Folia plugin for SPW ${pluginContext.spwVersion}")
+        // Show the same concise guide used by the configuration page whenever the module loads.
+        showUsage()
     }
 
     override fun stop() {
@@ -77,8 +79,12 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
 
     private fun showFoliaWindow() {
         writeLog("open entry invoked")
-        if (bridge.isRunning()) bridge.sendAction("show")
-        else if (!bridge.open()) toast("Folia Linux host is unavailable", WorkshopApi.Ui.ToastType.Error)
+        if (!bridge.open("lyrics")) toast("Folia Linux host is unavailable", WorkshopApi.Ui.ToastType.Error)
+    }
+
+    private fun openFoliaForConfiguration() {
+        writeLog("open configuration entry invoked")
+        if (!bridge.open("main")) toast("Folia Linux host is unavailable", WorkshopApi.Ui.ToastType.Error)
     }
 
     private fun handleControl(action: String, positionMs: Long?) {
@@ -108,8 +114,8 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
     private fun showUsage() {
         writeLog("usage dialog invoked")
         toast(
-            "使用方法：点击“打开 / 显示 Folia”，或在快捷键设置中使用 Ctrl+Alt+F。\n" +
-                "首次启动需要 Wayland、KDE Plasma、Qt6 WebEngine 和 PipeWire；关闭窗口后可从托盘或入口再次打开。",
+            "使用方法：点击“打开 Folia 歌词页”显示歌词页；需要修改 Folia 原版设置时，点击“打开 Folia 以配置”。\n" +
+                "也可在 SPW 快捷键设置中使用 Ctrl+Alt+F 打开或隐藏歌词页。首次启动需要 Wayland、KDE Plasma、Qt6 WebEngine 和 PipeWire。",
             WorkshopApi.Ui.ToastType.Success,
         )
     }
@@ -177,7 +183,7 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
 
         fun logStatic(message: String) { instance?.writeLog(message) }
 
-        /** Target of the SPW plugin configuration page's "打开 / 显示 Folia" button. */
+        /** Target of the SPW plugin configuration page's "打开 Folia 歌词页" button. */
         @JvmStatic
         @JvmName("onOpenFolia")
         fun onOpenFolia() {
@@ -189,6 +195,19 @@ class FoliaPlugin(pluginContext: PluginContext) : SpwPlugin(pluginContext) {
                 return
             }
             target.showFoliaWindow()
+        }
+
+        @JvmStatic
+        @JvmName("onOpenFoliaForConfiguration")
+        fun onOpenFoliaForConfiguration() {
+            val target = instance
+            if (target == null) {
+                runCatching {
+                    WorkshopApi.ui.toast("spw-folia-for-linux 插件未启动", WorkshopApi.Ui.ToastType.Warning)
+                }
+                return
+            }
+            target.openFoliaForConfiguration()
         }
 
         @JvmStatic

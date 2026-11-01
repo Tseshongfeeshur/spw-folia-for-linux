@@ -25,8 +25,10 @@ page button and public shortcut remain usable if that permission is declined. Pl
 limited to play/pause, previous, next, and seek through the public Workshop API.
 
 The plugin configuration page is enabled by `Plugin-Has-Config: true` and the bundled
-`preference_config.json`. Its “打开 / 显示 Folia” button calls the public static callback
-`dev.spw.folia.FoliaPlugin.onOpenFolia`.
+`preference_config.json`. “打开 Folia 歌词页” calls
+`dev.spw.folia.FoliaPlugin.onOpenFolia` and loads the plugin's `obs=1` lyric surface;
+“打开 Folia 以配置” calls `onOpenFoliaForConfiguration` and loads Folia's main application
+surface without `obs=1`, so its own global settings remain available.
 
 The configuration page also provides a short usage guide, a Linux environment check, and a
 diagnostic export button. The export is written to `~/Downloads` when available; otherwise the

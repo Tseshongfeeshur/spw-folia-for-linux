@@ -1,6 +1,8 @@
-/* The 15 lyric styles in Folia's shelf order (each entry's `order` ascending), with the real settings
+/* The complete Folia lyric-style shelf (each entry's `order` ascending), with the real settings
  * panel its registry entry renders and the beat effects it declares. Only the panels are reused; the
- * style previews are static frames captured from the real renderers (poc/webview/server/out/styles). */
+ * style previews are static frames captured from the real renderers (poc/webview/server/out/styles).
+ * The two newest styles do not have a captured frame in this package yet; the stage uses their
+ * registry glyph instead of emitting a broken image. */
 import React from 'react';
 import {
     CappellaSettingsPanel,
@@ -15,6 +17,8 @@ import SonnetSettingsPanel from '@/components/visualizer/sonnet/SonnetSettingsPa
 import TemperaSettingsPanel from '@/components/visualizer/tempera/TemperaSettingsPanel';
 import LumiereSettingsPanel from '@/components/visualizer/lumiere/LumiereSettingsPanel';
 import HanabiSettingsPanel from '@/components/visualizer/hanabi/HanabiSettingsPanel';
+import MachiSettingsPanel from '@/components/visualizer/machi/MachiSettingsPanel';
+import NebbiaSettingsPanel from '@/components/visualizer/nebbia/NebbiaSettingsPanel';
 import PendoloSettingsPanel from '@/components/visualizer/pendolo/PendoloSettingsPanel';
 import { MonetSettingsPanel } from '@/components/visualizer/monet/MonetSettingsPanel';
 import { BEAT_EFFECT_IDS, type BeatEffectDef } from '@/components/../services/beatFx/beatEffects';
@@ -27,8 +31,8 @@ export interface StyleEntry {
     order: number;
     labelKey: string;
     labelFallback: string;
-    /** Static preview frame in public/styles. */
-    thumb: string;
+    /** Static preview frame in public/styles, when a capture exists. */
+    thumb?: string;
     renderSettingsPanel?: (props: any) => React.ReactNode;
     ownFontSizeNoticeKey?: string;
     beatEffects?: readonly BeatEffectDef[];
@@ -97,6 +101,40 @@ export const STYLE_ENTRIES: StyleEntry[] = [
                 source: 'beats',
             },
         ],
+    },
+    {
+        mode: 'machi',
+        order: 27,
+        labelKey: 'ui.visualizerMachi',
+        labelFallback: '町景',
+        renderSettingsPanel: panel(MachiSettingsPanel),
+        beatEffects: [
+            {
+                id: BEAT_EFFECT_IDS.machiNeonPulse,
+                nameKey: 'options.beatEffect_machiNeonPulse',
+                descKey: 'options.beatEffect_machiNeonPulseDesc',
+                source: 'beats',
+            },
+            {
+                id: BEAT_EFFECT_IDS.machiDrumRipple,
+                nameKey: 'options.beatEffect_machiDrumRipple',
+                descKey: 'options.beatEffect_machiDrumRippleDesc',
+                source: 'drums',
+            },
+            {
+                id: BEAT_EFFECT_IDS.machiScreenFlash,
+                nameKey: 'options.beatEffect_machiScreenFlash',
+                descKey: 'options.beatEffect_machiScreenFlashDesc',
+                source: 'drums',
+            },
+        ],
+    },
+    {
+        mode: 'nebbia',
+        order: 29,
+        labelKey: 'ui.visualizerNebbia',
+        labelFallback: '雾笺',
+        renderSettingsPanel: panel(NebbiaSettingsPanel),
     },
     {
         mode: 'classic',

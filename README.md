@@ -22,9 +22,9 @@ PipeWire 不随插件重复打包。
 - PipeWire sink monitor、FFT、频谱和五频段音频驱动
 - 暂停或无音频时的呼吸值降级
 - 播放 / 暂停、上一首、下一首和定位
-- SPW 配置页“打开 / 显示 Folia”按钮、公开菜单 Hook 入口、Plasma 托盘入口和标准快捷键入口
+- SPW 配置页“打开 Folia 歌词页”和“打开 Folia 以配置”按钮、公开菜单 Hook 入口、Plasma 托盘入口和标准快捷键入口
 - 播放页右下角沿用 Folia 原版侧边面板开关；控制页仅保留歌曲信息、歌词样式、背景类型和颜色主题
-- 控制页末尾的设置图标直接打开 Folia 原版“歌词样式”调参弹窗，保留原版预览、布局和动画
+- 控制页仅保留歌词样式、背景类型和颜色主题的原版操作；选择器不再提供“更多设置”入口
 - 配置页使用说明、Linux 环境检测和诊断日志导出
 - 设置持久化、字体、主题和 Folia 样式调节
 
@@ -36,7 +36,7 @@ Linux 版本不支持 X11 回退、透明窗口、鼠标穿透、Windows/WebView
 ## 安装
 
 安装系统依赖后，在 Salt Player 中导入并启用 `.spmod`，按提示授予 `library-read`、`key-bindings`
-和 `class-transform`。插件配置页现在提供“打开 / 显示 Folia”按钮；也可使用“更多”菜单、公开
+和 `class-transform`。插件配置页现在提供“打开 Folia 歌词页”和“打开 Folia 以配置”按钮；也可使用“更多”菜单、公开
 快捷键（默认 `Ctrl+Alt+F`）或 Plasma 托盘。第一次打开时启动 Qt 宿主，宿主启动后注册 KDE
 StatusNotifier 托盘。禁用或卸载插件会发送 `quit` 并关闭宿主。
 

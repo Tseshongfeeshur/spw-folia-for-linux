@@ -13,6 +13,7 @@
  * effect, its cleanup cancelled the crossfade timers and the preview could stay on the old style
  * (reported m03519). This version keys the effect on `src` only and never blocks the incoming frame. */
 import React, { useEffect, useRef, useState } from 'react';
+import { VisualizerModeGlyph } from '@/components/visualizer/modeGlyphs';
 import { getStyleEntry } from './styles';
 import type { StyleMode } from './settings';
 
@@ -26,14 +27,14 @@ const CROSSFADE_MS = 220;
 
 const StylePreview: React.FC<StylePreviewProps> = ({ mode, paused = false }) => {
     const src = getStyleEntry(mode).thumb;
-    const [previous, setPrevious] = useState<string | null>(null);
-    const lastSrc = useRef<string>(src);
+    const [previous, setPrevious] = useState<string | undefined>(undefined);
+    const lastSrc = useRef<string | undefined>(src);
 
     useEffect(() => {
         if (lastSrc.current === src) return undefined;
         setPrevious(lastSrc.current);
         lastSrc.current = src;
-        const timer = setTimeout(() => setPrevious(null), CROSSFADE_MS);
+        const timer = setTimeout(() => setPrevious(undefined), CROSSFADE_MS);
         return () => clearTimeout(timer);
     }, [src]);
 
@@ -52,13 +53,20 @@ const StylePreview: React.FC<StylePreviewProps> = ({ mode, paused = false }) => 
                     className="absolute inset-0 h-full w-full object-cover"
                 />
             )}
-            <img
-                key={src}
-                src={src}
-                alt={getStyleEntry(mode).labelFallback}
-                draggable={false}
-                className="spw-preview-in absolute inset-0 h-full w-full object-cover"
-            />
+            {src ? (
+                <img
+                    key={src}
+                    src={src}
+                    alt={getStyleEntry(mode).labelFallback}
+                    draggable={false}
+                    className="spw-preview-in absolute inset-0 h-full w-full object-cover"
+                />
+            ) : (
+                <div className="absolute inset-0 grid place-items-center gap-3 bg-[var(--st-pv)] text-[color:var(--st-t2)]">
+                    <VisualizerModeGlyph mode={mode} size={64} />
+                    <span className="text-sm">{getStyleEntry(mode).labelFallback}</span>
+                </div>
+            )}
         </div>
     );
 };

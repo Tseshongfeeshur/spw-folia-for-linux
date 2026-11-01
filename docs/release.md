@@ -13,7 +13,8 @@ The plugin manifest declares `Plugin-Has-Config: true` and the permissions `libr
 shortcut remain available without it.
 
 The plugin classes include `preference_config.json`; this is what makes the SPW plugin-page
-“配置” action available and supplies its “打开 / 显示 Folia” button.
+“配置” action available. It supplies separate “打开 Folia 歌词页” and “打开 Folia 以配置”
+buttons: the first loads the lyric surface, while the second loads Folia's main application page.
 
 ```text
 web/

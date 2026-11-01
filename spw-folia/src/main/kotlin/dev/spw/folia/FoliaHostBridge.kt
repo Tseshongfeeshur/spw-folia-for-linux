@@ -33,8 +33,11 @@ internal class FoliaHostBridge(private val pluginPath: File, private val log: (S
 
     fun isRunning(): Boolean = process?.isAlive == true && !stopping
 
-    @Synchronized fun open(): Boolean {
-        if (isRunning()) { sendAction("toggle"); return true }
+    @Synchronized fun open(surface: String = "lyrics"): Boolean {
+        if (isRunning()) {
+            sendAction(if (surface == "main") "configure" else "show")
+            return true
+        }
         val host = resolveHost() ?: run { log("Linux host executable not found"); return false }
         val web = resolveWeb() ?: run { log("Folia web bundle not found"); return false }
         stopping = false
@@ -48,7 +51,7 @@ internal class FoliaHostBridge(private val pluginPath: File, private val log: (S
         Thread({ readOutput(p) }, "spw-folia-for-linux-host-output").apply { isDaemon = true; start() }
         Thread({ readError(p) }, "spw-folia-for-linux-host-error").apply { isDaemon = true; start() }
         Thread({ p.waitFor(); if (!stopping) cleanup(p, "process-exit") }, "spw-folia-for-linux-host-exit").apply { isDaemon = true; start() }
-        sendLine("{\"t\":\"hello\",\"protocol\":1,\"pluginVersion\":${Json.str(FoliaPlugin.PLUGIN_VERSION)},\"spwVersion\":${Json.str(hostVersion)}}")
+        sendLine("{\"t\":\"hello\",\"protocol\":1,\"surface\":${Json.str(surface)},\"pluginVersion\":${Json.str(FoliaPlugin.PLUGIN_VERSION)},\"spwVersion\":${Json.str(hostVersion)}}")
         settingsTree?.let(::sendSettings)
         log("Linux host spawned pid=${p.pid()}")
         return true

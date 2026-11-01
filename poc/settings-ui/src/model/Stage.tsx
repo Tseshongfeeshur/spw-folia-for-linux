@@ -17,6 +17,7 @@
 import React, { useState } from 'react';
 import { Pause, Play, Shuffle } from 'lucide-react';
 import { PictureGrid } from '@/components/modal/settings/kit';
+import { VisualizerModeGlyph } from '@/components/visualizer/modeGlyphs';
 import { STYLE_COUNT, STYLE_ENTRIES, getStyleEntry, type StyleEntry } from './styles';
 import StylePreview from './StylePreview';
 import LivePreview from './LivePreview';
@@ -37,15 +38,30 @@ interface StageProps {
     onRandomChange: (enabled: boolean) => void;
 }
 
-const StylePicture: React.FC<{ mode: StyleMode; state: { visible: boolean } }> = ({ mode, state }) => (
-    <img
-        src={getStyleEntry(mode).thumb}
-        alt={getStyleEntry(mode).labelFallback}
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ opacity: state.visible ? 1 : 0 }}
-    />
-);
+const StylePicture: React.FC<{ mode: StyleMode; state: { visible: boolean } }> = ({ mode, state }) => {
+    const entry = getStyleEntry(mode);
+    const [imageFailed, setImageFailed] = React.useState(false);
+    const showImage = Boolean(entry.thumb) && !imageFailed;
+
+    return showImage ? (
+        <img
+            src={entry.thumb}
+            alt={entry.labelFallback}
+            draggable={false}
+            onError={() => setImageFailed(true)}
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ opacity: state.visible ? 1 : 0 }}
+        />
+    ) : (
+        <span
+            className="absolute inset-0 grid place-items-center gap-1 bg-[var(--st-pv)] px-2 text-[color:var(--st-t2)]"
+            style={{ opacity: state.visible ? 1 : 0 }}
+        >
+            <VisualizerModeGlyph mode={mode} size={28} />
+            <span className="text-[11px] leading-4">{entry.labelFallback}</span>
+        </span>
+    );
+};
 
 /** The 随机 tile shares the 16:10 frame with a style picture, so it is just a centred glyph. */
 const RandomPicture: React.FC = () => (
@@ -95,7 +111,7 @@ const Stage: React.FC<StageProps> = ({ t, visualizerMode, onVisualizerModeChange
                 </button>
             </div>
 
-            {/* Style shelf: 8 columns in the wide window (15 styles + 随机 = two clean rows), the
+            {/* Style shelf: 8 columns in the wide window (17 styles + 随机 = three clean rows), the
                 count beside the heading. Choosing 随机 turns the pool on; choosing a style by hand
                 turns it off again through the store's `setVisualizerMode`. */}
             <div className="flex shrink-0 flex-col">

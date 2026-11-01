@@ -112,12 +112,12 @@ export const BACKGROUND_TUNING_DEFAULTS: Record<'monet' | 'nomand' | 'latent' | 
     sora: { ...DEFAULT_SORA_BACKGROUND_TUNING },
 };
 
-/** The shelf order of `model/styles.tsx` (each entry's `order` ascending). Duplicated here because
- *  `styles.tsx` imports `StyleMode` from this module — a value import back would be a cycle.
- *  `styles.tsx` asserts the two lists agree at module load. */
+/** The complete Folia shelf order (each entry's `order` ascending). Duplicated here because
+ * `styles.tsx` imports `StyleMode` from this module — a value import back would be a cycle.
+ * `styles.tsx` asserts the two lists agree at module load. */
 export const STYLE_MODE_SHELF_ORDER: StyleMode[] = [
-    'sonnet', 'tempera', 'lumiere', 'hanabi', 'classic', 'cadenza', 'partita', 'fume',
-    'tilt', 'claddagh', 'monet', 'pendolo', 'cappella', 'diorama', 'still',
+    'sonnet', 'tempera', 'lumiere', 'hanabi', 'machi', 'nebbia', 'classic', 'cadenza',
+    'partita', 'fume', 'tilt', 'claddagh', 'monet', 'pendolo', 'cappella', 'diorama', 'still',
 ];
 
 /** 0.7.22 随机歌词样式's default pool: every style ticked, in Folia's shelf order. */

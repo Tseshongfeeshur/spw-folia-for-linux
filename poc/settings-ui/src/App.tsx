@@ -173,6 +173,7 @@ const App: React.FC<AppProps> = ({ injected }) => {
         // The floating workbench is rendered above the player, so the side panel must leave the
         // stage first. Otherwise its z-[60] surface covers the workbench's injected layer and the
         // button appears to have only hidden the controls.
+        setOpen(false);
         setPanelOpen(false);
         setVisualizerSettingsSection(section);
         setVisualizerSettingsOpen(true);

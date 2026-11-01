@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import VisPlayground from '@/components/visualizer/window/VisPlayground';
 import type { Theme, SubtitleContentMode, VisualizerMode } from '@/types';
 import { parseFontFamilyStack } from '~/publisher/themeFonts';
@@ -43,8 +44,12 @@ const FoliaVisualizerSettingsPopup: React.FC<FoliaVisualizerSettingsPopupProps> 
     const subtitleFontStack = subtitleUsesCustomFont ? parseFontFamilyStack(subtitle.subtitleFontStack) : [];
     const fontStyle = appearance.fontStyle === 'custom' ? 'sans' : appearance.fontStyle;
 
-    return (
-        <div className="pointer-events-auto fixed inset-0 z-[2147483400]">
+    return createPortal(
+        <div
+            className="pointer-events-auto fixed inset-0 z-[2147483640]"
+            data-spw-folia-visualizer-settings-popup
+            style={{ isolation: 'isolate' }}
+        >
             <VisPlayground
                 theme={theme}
                 isDaylight={isDaylight}
@@ -122,7 +127,8 @@ const FoliaVisualizerSettingsPopup: React.FC<FoliaVisualizerSettingsPopupProps> 
                 onToggleHarmonySubtitleBackground={next => state.setSubtitle({ harmonySubtitleBackground: next })}
                 onClose={onClose}
             />
-        </div>
+        </div>,
+        document.body,
     );
 };
 

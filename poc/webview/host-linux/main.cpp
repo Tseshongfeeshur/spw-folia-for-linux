@@ -128,12 +128,17 @@ public:
 private:
     void handle(const QJsonObject& message) {
         const auto type = message.value("t").toString();
-        if (type == "hello") { cacheAndDeliver(message); ensureWindow(); return; }
+        if (type == "hello") {
+            cacheAndDeliver(message);
+            ensureWindow(message.value("surface").toString() == "main");
+            return;
+        }
         if (type == "quit") { emitLine({{"t", "closed"}, {"reason", "quit"}}); qApp->quit(); return; }
         if (type == "action") {
             const auto action = message.value("action").toString();
             if (action == "toggle") toggleWindow();
             else if (action == "show") ensureWindow();
+            else if (action == "configure") ensureWindow(true);
             return;
         }
         if (type == "state") playing_ = message.value("playing").toBool(false);
@@ -141,8 +146,14 @@ private:
             cacheAndDeliver(message);
     }
 
-    void ensureWindow() {
-        if (view_) { view_->show(); view_->raise(); view_->activateWindow(); return; }
+    void ensureWindow(bool mainSurface = false) {
+        if (view_) {
+            if (mainSurface) view_->load(QUrl("folia://app/index.html?splash=0"));
+            view_->show();
+            view_->raise();
+            view_->activateWindow();
+            return;
+        }
         view_ = new QWebEngineView;
         page_ = new Page(view_);
         view_->setPage(page_);
@@ -169,7 +180,7 @@ private:
         settingsScript.setWorldId(QWebEngineScript::MainWorld);
         settingsScript.setRunsOnSubFrames(false);
         settingsScript.setSourceCode(
-            "(function(){if(window.top!==window)return;var load=function(){if(document.querySelector('[data-spw-settings-entry]'))return;"
+            "(function(){if(window.top!==window||new URLSearchParams(location.search).get('obs')!=='1')return;var load=function(){if(document.querySelector('[data-spw-settings-entry]'))return;"
             "var s=document.createElement('script');s.type='module';s.src='folia://app/settings/settings-ui.js';"
             "s.setAttribute('data-spw-settings-entry','');document.head.appendChild(s);};"
             "if(document.head)load();else document.addEventListener('DOMContentLoaded',load,{once:true});})();");
@@ -179,7 +190,7 @@ private:
         view_->resize(1280, 720);
         // Folia documents this query as its stable OBS/browser-source surface. It mounts only the
         // read-only lyric visualizer, so the native window never enters Folia's home/library UI.
-        view_->load(QUrl("folia://app/index.html?obs=1&splash=0"));
+        view_->load(QUrl(mainSurface ? "folia://app/index.html?splash=0" : "folia://app/index.html?obs=1&splash=0"));
         view_->show();
     }
 

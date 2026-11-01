@@ -67,6 +67,11 @@ const FOLIA_BACKGROUND_QUICK_CONTROL_MARKERS = [
     ['sora', "renderQuickControls: ({ config, actions, t }) =>"],
 ] as const;
 
+const FOLIA_STYLE_QUICK_CONTROL_MARKERS = [
+    ['machi', "renderQuickControls: ({ tuning, onTuningChange, onClosePanel, t }"],
+    ['nebbia', "renderQuickControls: ({ tuning, onTuningChange, t }"],
+] as const;
+
 const assertFoliaBackgroundQuickControlSources = () => {
     for (const [mode, marker] of FOLIA_BACKGROUND_QUICK_CONTROL_MARKERS) {
         const entryPath = path.join(foliaSrc, 'components/visualizer/backgrounds', mode, 'entry.tsx');
@@ -75,6 +80,19 @@ const assertFoliaBackgroundQuickControlSources = () => {
             throw new Error(
                 `[spw-folia-for-linux] background ${mode} quick-control marker changed in ${entryPath}; `
                 + 'review the original entry and update stubs/backgrounds.tsx before building',
+            );
+        }
+    }
+};
+
+const assertFoliaStyleQuickControlSources = () => {
+    for (const [mode, marker] of FOLIA_STYLE_QUICK_CONTROL_MARKERS) {
+        const entryPath = path.join(foliaSrc, 'components/visualizer', mode, 'entry.tsx');
+        const source = fs.readFileSync(entryPath, 'utf8');
+        if (!source.includes(marker)) {
+            throw new Error(
+                `[spw-folia-for-linux] visualizer ${mode} quick-control marker changed in ${entryPath}; `
+                + 'the Linux panel reuses Folia\'s registry entry, so review the upstream entry before building',
             );
         }
     }
@@ -228,17 +246,82 @@ const SETTINGS_SURGERY: SettingsSurgeryFile[] = [
         ],
     },
     {
+        suffix: '/components/panelTab/QuickEffectPicker.tsx',
+        edits: [
+            {
+                what: 'quick picker more-settings visibility prop',
+                find: '    onOpenMore: () => void;\n};',
+                replace: '    onOpenMore: () => void;\n    showMoreSettings?: boolean;\n};',
+            },
+            {
+                what: 'quick picker more-settings visibility default',
+                find: '    anchorRef, open, onClose, value, options, picture, onChange, label, moreLabel, onOpenMore,\n}: QuickEffectPickerProps<Value>) => (',
+                replace: '    anchorRef, open, onClose, value, options, picture, onChange, label, moreLabel, onOpenMore, showMoreSettings = true,\n}: QuickEffectPickerProps<Value>) => (',
+            },
+            {
+                what: 'quick picker more-settings item',
+                find: '        <PickerMoreButton label={moreLabel} onClose={onClose} onOpenMore={onOpenMore} />',
+                replace: '        {showMoreSettings && <PickerMoreButton label={moreLabel} onClose={onClose} onOpenMore={onOpenMore} />}',
+            },
+        ],
+    },
+    {
+        suffix: '/components/panelTab/controls/ModeStepperRow.tsx',
+        edits: [
+            {
+                what: 'mode stepper more-settings visibility prop',
+                find: '    onOpenMore: () => void;\n    /** Whether the row\'s picker is open;',
+                replace: '    onOpenMore: () => void;\n    showMoreSettings?: boolean;\n    /** Whether the row\'s picker is open;',
+            },
+            {
+                what: 'mode stepper more-settings visibility default',
+                find: '    moreLabel,\n    onOpenMore,\n    open,',
+                replace: '    moreLabel,\n    onOpenMore,\n    showMoreSettings = true,\n    open,',
+            },
+            {
+                what: 'mode stepper more-settings pass',
+                find: '                onOpenMore={onOpenMore}\n            />',
+                replace: '                onOpenMore={onOpenMore}\n                showMoreSettings={showMoreSettings}\n            />',
+            },
+        ],
+    },
+    {
         suffix: '/components/panelTab/controls/AppearanceSection.tsx',
         edits: [
             {
                 what: 'transparent background visibility prop',
                 find: '    onToggleTransparentPlayerBackground: (enable: boolean) => void;\n',
-                replace: '    onToggleTransparentPlayerBackground: (enable: boolean) => void;\n    showTransparentPlayerBackground?: boolean;\n    onOpenVisualizerSettings?: () => void;\n    onOpenBackgroundSettings?: () => void;\n',
+                replace: '    onToggleTransparentPlayerBackground: (enable: boolean) => void;\n    showTransparentPlayerBackground?: boolean;\n    showLyricSegmentation?: boolean;\n    onOpenVisualizerSettings?: () => void;\n    onOpenBackgroundSettings?: () => void;\n',
+            },
+            {
+                what: 'more-settings visibility prop',
+                find: '    showLyricSegmentation?: boolean;\n',
+                replace: '    showLyricSegmentation?: boolean;\n    showMoreSettings?: boolean;\n',
             },
             {
                 what: 'transparent background visibility default',
                 find: '    onToggleTransparentPlayerBackground,\n    onClosePanel,\n',
-                replace: '    onToggleTransparentPlayerBackground,\n    showTransparentPlayerBackground = true,\n    onOpenVisualizerSettings,\n    onOpenBackgroundSettings,\n    onClosePanel,\n',
+                replace: '    onToggleTransparentPlayerBackground,\n    showTransparentPlayerBackground = true,\n    showLyricSegmentation = true,\n    onOpenVisualizerSettings,\n    onOpenBackgroundSettings,\n    onClosePanel,\n',
+            },
+            {
+                what: 'more-settings visibility default',
+                find: '    showLyricSegmentation = true,\n',
+                replace: '    showLyricSegmentation = true,\n    showMoreSettings = true,\n',
+            },
+            {
+                what: 'lyric style more-settings visibility',
+                find: "                        onOpenMore={openVisualizerSettings}\n                        open={openPicker === 'style'}",
+                replace: "                        onOpenMore={openVisualizerSettings}\n                        showMoreSettings={showMoreSettings}\n                        open={openPicker === 'style'}",
+            },
+            {
+                what: 'background more-settings visibility',
+                find: "                        onOpenMore={openBackgroundSettings}\n                        open={openPicker === 'background'}",
+                replace: "                        onOpenMore={openBackgroundSettings}\n                        showMoreSettings={showMoreSettings}\n                        open={openPicker === 'background'}",
+            },
+            {
+                what: 'lyric segmentation visibility',
+                find: '    const usesWordSegmentation = Boolean(getVisualizerRegistryEntry(visualizerMode).usesWordSegmentation);\n',
+                replace: '    const usesWordSegmentation = showLyricSegmentation && Boolean(getVisualizerRegistryEntry(visualizerMode).usesWordSegmentation);\n',
             },
             {
                 what: 'visualizer settings callback',
@@ -420,6 +503,7 @@ const foliaSettingsSurgery = (): Plugin => ({
 
 ensureFoliaDeps();
 assertFoliaBackgroundQuickControlSources();
+assertFoliaStyleQuickControlSources();
 
 export default defineConfig(async () => ({
     base: './',

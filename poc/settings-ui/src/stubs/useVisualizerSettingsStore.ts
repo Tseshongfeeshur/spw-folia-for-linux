@@ -36,7 +36,13 @@ const adaptState = (state: ReturnType<typeof useSettingsStore.getState>): Record
         if (!tuning) continue;
         const current = state.styleTunings[mode as StyleMode] ?? tuning.defaults;
         adapted[tuning.settingsKey] = current;
-        adapted[tuning.settingsSetterKey] = (patch: Record<string, unknown>) => state.setStyleTuning(mode as StyleMode, patch);
+        adapted[tuning.settingsSetterKey] = (patch: Record<string, unknown>) => {
+            const latest = useSettingsStore.getState().styleTunings[mode as StyleMode] ?? tuning.defaults;
+            const merged = tuning.storage?.merge
+                ? tuning.storage.merge(latest, patch)
+                : { ...latest, ...patch };
+            useSettingsStore.getState().setStyleTuning(mode as StyleMode, merged as Record<string, unknown>);
+        };
         if (tuning.settingsResetterKey) {
             adapted[tuning.settingsResetterKey] = () => state.resetStyleTuning(mode as StyleMode);
         }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useTransform, type MotionStyle } from 'framer-motion';
-import { Disc, Moon, Settings2, Sun } from 'lucide-react';
+import { Disc, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Theme, ThemeMode, VisualizerMode } from '@/types';
 import type { ThemeSourceModel } from '@/hooks/themeControllerState';
@@ -78,7 +78,6 @@ interface LinuxThemeNameRowProps {
     daylightTheme: Theme;
     isDaylight: boolean;
     onToggleDaylight: () => void;
-    onOpenVisualizerSettings: () => void;
 }
 
 /** Original ThemeNameRow layout with the plugin's settings destination in the final icon slot. */
@@ -89,21 +88,34 @@ const LinuxThemeNameRow: React.FC<LinuxThemeNameRowProps> = ({
     daylightTheme,
     isDaylight,
     onToggleDaylight,
-    onOpenVisualizerSettings,
 }) => {
     const { t } = useTranslation();
     const displayName = themeSourceModel.current.label || theme.name;
-    const formattedName = themeSourceModel.activeSource !== 'default'
+    const sourceName = themeSourceModel.activeSource === 'ai'
+        ? t('ui.aiTheme')
+        : themeSourceModel.activeSource === 'custom'
+            ? t('options.customTheme')
+            : t('ui.default');
+    const themeName = themeSourceModel.activeSource !== 'default'
         ? displayName
         : displayName === defaultTheme.name
             ? t('theme.midnightDefault')
             : displayName === daylightTheme.name
                 ? t('theme.daylightDefault')
                 : displayName;
+    const daylightName = isDaylight
+        ? t('options.daylightModeLight')
+        : t('options.daylightModeDark');
+    const formattedName = `${sourceName} / ${themeName} / ${daylightName}`;
 
     return (
         <div className="flex min-h-11 flex-wrap items-center gap-x-3 py-1.5">
-            <span className="min-w-0 flex-[1_1_72px] truncate text-[13px] text-[color:var(--st-t2)]">{formattedName}</span>
+            <span
+                className="min-w-0 flex-[1_1_72px] truncate text-[13px] text-[color:var(--st-t2)]"
+                title={formattedName}
+            >
+                {formattedName}
+            </span>
             <span className="ml-auto flex max-w-full items-center gap-1.5">
                 <Segments
                     size="s"
@@ -114,14 +126,6 @@ const LinuxThemeNameRow: React.FC<LinuxThemeNameRowProps> = ({
                         { value: 'dark', label: t('options.daylightModeDark'), icon: <Moon size={15} />, iconOnly: true },
                     ]}
                 />
-                <PanelIconButton
-                    size="s"
-                    filled
-                    label={t('ui.moreSettings')}
-                    onClick={onOpenVisualizerSettings}
-                >
-                    <Settings2 size={15} />
-                </PanelIconButton>
             </span>
         </div>
     );
@@ -169,6 +173,8 @@ const LinuxControls: React.FC<LinuxControlsProps> = ({
                 showTransparentPlayerBackground={false}
                 onOpenVisualizerSettings={onOpenVisualizerSettings}
                 onOpenBackgroundSettings={onOpenBackgroundSettings}
+                showLyricSegmentation={false}
+                showMoreSettings={false}
                 onClosePanel={onClose}
             />
 
@@ -189,7 +195,6 @@ const LinuxControls: React.FC<LinuxControlsProps> = ({
                 daylightTheme={DAYLIGHT_THEME}
                 isDaylight={isDaylight}
                 onToggleDaylight={onToggleDaylight}
-                onOpenVisualizerSettings={onOpenVisualizerSettings}
             />
         </div>
     );

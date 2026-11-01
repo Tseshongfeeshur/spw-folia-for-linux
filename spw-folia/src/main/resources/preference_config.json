@@ -7,7 +7,7 @@
         {
           "type": "button",
           "title": "使用方法",
-          "summary": "点击打开 Folia；也可在 SPW 快捷键设置中使用 Ctrl+Alt+F。首次启动需要 Wayland、KDE Plasma、Qt6 WebEngine 和 PipeWire。",
+          "summary": "点击“打开 Folia 歌词页”显示歌词页；点击“打开 Folia 以配置”进入 Folia 主程序修改原版设置。快捷键 Ctrl+Alt+F 用于打开或隐藏歌词页。",
           "arrow_type": "none",
           "on_click": "dev.spw.folia.FoliaPlugin.onShowUsage"
         },
@@ -33,10 +33,17 @@
       "preferences": [
         {
           "type": "button",
-          "title": "打开 / 显示 Folia",
-          "summary": "启动或显示 Folia 窗口。第一次打开会启动随插件分发的 Qt6 宿主。",
+          "title": "打开 Folia 歌词页",
+          "summary": "启动或显示随插件分发的 Folia 歌词页宿主。",
           "arrow_type": "none",
           "on_click": "dev.spw.folia.FoliaPlugin.onOpenFolia"
+        },
+        {
+          "type": "button",
+          "title": "打开 Folia 以配置",
+          "summary": "打开 Folia 主程序页面，用于修改 Folia 原版全局设置。",
+          "arrow_type": "none",
+          "on_click": "dev.spw.folia.FoliaPlugin.onOpenFoliaForConfiguration"
         }
       ]
     }
